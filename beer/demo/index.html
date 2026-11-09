@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beer 演示</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #fbf8f3; }
+  #root { height: 100vh; display: flex; flex-direction: column; }
+  .demo-chat { flex: 1; display: flex; flex-direction: column; min-height: 0; font: 13px/1.6 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; color: #2b2621; }
+  .demo-msgs { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .demo-msg { padding: 8px 11px; border-radius: 10px; max-width: 92%; white-space: pre-wrap; }
+  .demo-msg.me { align-self: flex-end; background: #fbe7df; }
+  .demo-msg.ai { align-self: flex-start; background: #fff; border: 1px solid #e6dfd4; }
+  .demo-input { margin: 10px; border: 1px solid #e6dfd4; border-radius: 10px; background: #fff; padding: 8px 10px; min-height: 64px; max-height: 180px; overflow: auto; flex: none; white-space: pre-wrap; color: #2b2621; }
+  .demo-input:empty::before { content: '和 AI 聊聊…'; color: #a39a8f; }
+</style>
+<!-- 宿主共享的 React（DSH Desktop 里由宿主提供，这里用 CDN 的 UMD 版） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// 一个极简的「宿主」：只实现 Beer 面板用到的那几个接口。
+(function () {
+  const h = React.createElement
+  const SESSION = 'demo-session'
+
+  // 对话草稿：面板里「放进对话」的内容会出现在右侧输入框
+  let draft = ''
+  const listeners = new Set()
+  const setDraft = text => { draft = text; listeners.forEach(fn => fn()) }
+
+  function FakeChat() {
+    const [, force] = React.useState(0)
+    React.useEffect(() => { const fn = () => force(n => n + 1); listeners.add(fn); return () => listeners.delete(fn) }, [])
+    return h('div', { className: 'demo-chat' },
+      h('div', { className: 'demo-msgs' },
+        h('div', { className: 'demo-msg me' }, '帮我看看今天的选题简报，哪个角度最值得写？'),
+        h('div', { className: 'demo-msg ai' }, '第一个「为什么我把灵感先丢进素材库」最合适：\n· 有你自己的口述录音做底\n· 读者留言里正好有人问\n要我先列个提纲吗？')),
+      h('div', { className: 'demo-input' }, draft))
+  }
+
+  const desktopWorkbenches = {
+    register(meta, Panel) {
+      ReactDOM.createRoot(document.getElementById('root'))
+        .render(h(Panel, { service: desktopWorkbenches, conversation: h(FakeChat) }))
+      return () => {}
+    },
+    currentSession: () => SESSION,
+    ownsSession: id => id === SESSION,
+    isActive: () => true,
+    subscribe: () => () => {},
+    ensureSession: async () => SESSION,
+    createSession: async () => SESSION,
+    openSession: async () => SESSION,
+  }
+
+  const sessions = {
+    scope: () => ({
+      get: name => name === 'conversation'
+        ? { input: { for: () => ({ setDraft, state: { getSnapshot: () => ({ draft }) } }) } }
+        : undefined,
+    }),
+    list: { getSnapshot: () => ({ projectionsBySession: {} }), subscribe: () => () => {} },
+  }
+
+  window.__ModuleLoader__ = {
+    load({ factory }) {
+      const mod = factory(name => {
+        if (name === 'react') return React
+        throw new Error('演示宿主没有提供 ' + name)
+      })
+      mod.apply({
+        desktopWorkbenches,
+        sessions,
+        effect: fn => fn(),
+        get: name => name === 'uiWorkspace' ? { pickDirectory: async () => null } : name === 'sessions' ? sessions : undefined,
+      })
+    },
+  }
+})()
+</script>
+<script src="/beer-client.js"></script>
+</body>
+</html>

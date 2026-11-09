@@ -43,7 +43,8 @@
     "check": "node --check src/index.js && node --check client/beer-client.js && npm test",
     "pack:tgz": "node \"/Applications/DSH Desktop.app/Contents/Resources/app.asar.unpacked/node_modules/pnpm/bin/pnpm.cjs\" pack",
     "pack:check": "npm pack --dry-run",
-    "build:editor": "esbuild editor/live-editor.js --bundle --format=esm --minify --legal-comments=eof --target=chrome110 --outfile=client/editor.js"
+    "build:editor": "esbuild editor/live-editor.js --bundle --format=esm --minify --legal-comments=eof --target=chrome110 --outfile=client/editor.js",
+    "demo": "node demo/server.js"
   },
   "peerDependencies": {
     "@deepseek-ai/schemastery": ">=3.18.6-alpha.1 <4.0.0-0"
