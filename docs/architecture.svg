@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="650" viewBox="0 0 680 650" role="img">
+<title>Beer Platform 架构（第 30 版方案，第一版从简，2026-11-09）</title>
+<desc>第一版从简。MacBook 上有 DSH Desktop（AI 对话和工作台 Beer；Beer 直接读写 Obsidian 库、生成选题简报和平台版本，并负责发布到 Rin 博客和内容平台）和 Obsidian（写作和内容库）。内容库只放在 MacBook 上，不同步，备份用时间机器。Beer 经 Tailscale 调用 Mac mini 的 HTTP API：上传录音、提交视频链接、提交转录、取回结果写进素材文件夹，并把这些操作注册成 AI 工具。Cloudflare 提醒服务放到第二版，届时以 HTTP API 提供。Mac mini 运行一个 launchd 托管的 Python 服务，负责上传和转录调度，通过 opencode go 生成摘要、通过邮箱发通知，经千兆局域网调用常开的 Windows 转录服务（B 站、YouTube 视频链接也由它先取字幕、没有再下载音轨转写），录音原件经局域网存到 NAS 上可配置的路径。NAS 只存文件，不接入 Tailscale，外出看 NAS 上的文件用极空间 App。</desc>
+<style>
+  text { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; dominant-baseline: central; }
+  .th { font-size: 14px; font-weight: 500; }
+  .ts { font-size: 12px; font-weight: 400; }
+  .mid { text-anchor: middle; }
+  .host rect { fill: #EEEDFE; stroke: #534AB7; stroke-width: 0.5; }
+  .host text { fill: #3C3489; }
+  .done rect { fill: #E1F5EE; stroke: #0F6E56; stroke-width: 0.5; }
+  .done .th { fill: #085041; }
+  .done .ts { fill: #0F6E56; }
+  .ext rect { fill: #F1EFE8; stroke: #5F5E5A; stroke-width: 0.5; }
+  .ext .th { fill: #444441; }
+  .ext .ts { fill: #5F5E5A; }
+  .label { fill: #5F5E5A; }
+  .arr { stroke: #73726C; stroke-width: 1.5; fill: none; }
+  .tbd { stroke-dasharray: 4 3; }
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#73726C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect x="0" y="0" width="680" height="650" fill="#FFFFFF"/>
+
+<g class="host"><rect x="40" y="40" width="360" height="160" rx="16"/><text class="th" x="60" y="64">MacBook Air · 随身</text></g>
+<g class="done"><rect x="60" y="96" width="155" height="66" rx="8"/><text class="th mid" x="137" y="118">DSH Desktop</text><text class="ts mid" x="137" y="141">AI 对话 · Beer · 发布 · 简报</text></g>
+<g class="done"><rect x="230" y="96" width="150" height="66" rx="8"/><text class="th mid" x="305" y="118">Obsidian</text><text class="ts mid" x="305" y="141">写作 · 内容库（只在本机）</text></g>
+
+<g class="host"><rect x="480" y="40" width="160" height="160" rx="16"/><text class="th" x="500" y="64">Cloudflare · 第二版</text></g>
+<g class="done"><rect x="495" y="96" width="130" height="66" rx="8"/><text class="th mid" x="560" y="118">提醒服务</text><text class="ts mid" x="560" y="141">Workers</text></g>
+
+<line x1="402" y1="182" x2="476" y2="182" class="arr tbd" marker-end="url(#arrow)"/>
+<path d="M400 196 L470 262" class="arr" marker-end="url(#arrow)"/>
+<text class="ts label" x="424" y="256">发布</text>
+<text class="ts label mid" x="440" y="166">第二版</text>
+<line x1="560" y1="202" x2="560" y2="256" class="arr" marker-end="url(#arrow)"/>
+<text class="ts label" x="570" y="229">到点发邮件</text>
+
+<line x1="137" y1="164" x2="137" y2="256" class="arr" marker-end="url(#arrow)"/>
+<text class="ts label" x="147" y="221">HTTP API · 上传 · 视频链接 · 取结果</text><text class="ts label" x="147" y="238">经 Tailscale（Beer 转发）</text>
+
+
+<g class="host"><rect x="40" y="260" width="410" height="170" rx="16"/><text class="th" x="60" y="284">Mac mini · Python 服务（launchd）</text><text class="ts" x="60" y="400">第一版不放库</text></g>
+<g class="done"><rect x="60" y="306" width="115" height="66" rx="8"/><text class="th mid" x="117" y="328">HTTP API</text><text class="ts mid" x="117" y="351">上传 · 统一入口</text></g>
+<g class="done"><rect x="187" y="306" width="115" height="66" rx="8"/><text class="th mid" x="244" y="328">转录调度</text><text class="ts mid" x="244" y="351">摘要 · 存结果</text></g>
+
+
+<g class="ext"><rect x="480" y="260" width="160" height="170" rx="12"/><text class="th mid" x="560" y="300">外部服务</text><text class="ts mid" x="560" y="328">opencode go · 模型</text><text class="ts mid label" x="560" y="346" style="font-size:11px">对话和流水线共用套餐</text><text class="ts mid" x="560" y="372">QQ / 163 邮箱</text><text class="ts mid" x="560" y="394">Rin 博客 · 知乎 · 小红书</text><text class="ts mid label" x="560" y="412" style="font-size:11px">由 MacBook 工作台发布</text></g>
+<line x1="452" y1="345" x2="476" y2="345" class="arr" marker-end="url(#arrow)"/>
+
+<line x1="165" y1="432" x2="165" y2="476" class="arr" marker-end="url(#arrow)"/>
+<line x1="340" y1="432" x2="340" y2="476" class="arr" marker-end="url(#arrow)"/>
+<text class="ts label mid" x="252" y="455">千兆局域网</text>
+
+<g class="host"><rect x="40" y="480" width="250" height="120" rx="16"/><text class="th" x="60" y="504">Windows 11 · 常开</text></g>
+<g class="done"><rect x="60" y="524" width="210" height="56" rx="8"/><text class="th mid" x="165" y="542">voice-transcription</text><text class="ts mid" x="165" y="563">GPU 转录 · 视频链接（字幕优先）</text></g>
+<g class="host"><rect x="310" y="480" width="330" height="120" rx="16"/><text class="th" x="330" y="504">NAS（极空间）· 常开</text></g>
+<g class="done"><rect x="330" y="524" width="290" height="56" rx="8"/><text class="th mid" x="475" y="542">录音原件（路径可配置）</text><text class="ts mid" x="475" y="563">只存文件 · 只在局域网 · 外出用极空间 App</text></g>
+
+<rect x="40" y="620" width="18" height="12" rx="3" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text class="ts label" x="66" y="626">已定或现有</text>
+<line x1="160" y1="626" x2="190" y2="626" class="arr tbd"/>
+<text class="ts label" x="198" y="626">以后做</text>
+<text class="ts label" x="260" y="626">MacBook 备份：时间机器</text>
+
+</svg>

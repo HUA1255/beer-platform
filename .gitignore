@@ -1,0 +1,7 @@
+.DS_Store
+
+# 本机部署产物（勿入库）
+home-service.env
+data/
+originals/
+home/deploy/com.example.home-service.deployed.plist

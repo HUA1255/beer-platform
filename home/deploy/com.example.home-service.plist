@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  家里服务 LaunchDaemon（系统级，不登录也运行）。
+  安装到 /Library/LaunchDaemons/，属主 root:wheel，权限 644。部署步骤见 home/README.md。
+  需要替换：100.x.y.z（Mac mini 的 Tailscale IP）、/Users/you/home-service（代码目录）。
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.example.home-service</string>
+
+  <!-- 以普通用户身份运行，不用 root -->
+  <key>UserName</key>
+  <string>you</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/you/home-service/home/.venv/bin/uvicorn</string>
+    <string>home_service.app:create_app</string>
+    <string>--factory</string>
+    <string>--env-file</string>
+    <string>/usr/local/etc/home-service.env</string>
+    <!-- 只在 Tailscale 网络里监听 -->
+    <string>--host</string>
+    <string>100.x.y.z</string>
+    <string>--port</string>
+    <string>8787</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/you/home-service/home</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <!-- 崩溃或开机时 Tailscale 还没起来导致绑定失败，都会自动重试 -->
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>/usr/local/var/log/home-service.log</string>
+  <key>StandardErrorPath</key>
+  <string>/usr/local/var/log/home-service.err</string>
+</dict>
+</plist>

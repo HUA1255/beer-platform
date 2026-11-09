@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工作台布局草图</title>
+<style>
+:root{
+  --bg:#f3efe8; --paper:#fbf8f3; --card:#ffffff; --line:#e6dfd4; --line2:#efe9df;
+  --ink:#2b2621; --ink2:#6f665c; --ink3:#a39a8f;
+  --accent:#d9694a; --accent-soft:#fbe7df; --accent-ink:#b4482b;
+  --ok:#3f8f5a; --ok-soft:#e3f2e7; --warn:#c08a1e; --warn-soft:#faf0d6; --bad:#c0463b; --bad-soft:#f8e1de;
+  --blue:#3d6fb6; --blue-soft:#e3ecf8; --violet:#7a5bb5; --violet-soft:#ece6f7;
+  --host:#efebe4; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",sans-serif}
+.wrap{max-width:1360px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:var(--ink2);margin:0 0 18px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+nav button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px;font:inherit;cursor:pointer;color:var(--ink2)}
+nav button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+section{display:none} section.on{display:block}
+.lead{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:14px}
+.lead b{color:var(--accent-ink)}
+.stage{width:100%;overflow:hidden;border-radius:14px;box-shadow:0 10px 30px rgba(60,40,20,.12);background:#000}
+.frame{width:1280px;height:760px;transform-origin:0 0;background:var(--paper);display:flex;position:relative;font-size:13px}
+.notes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+@media (max-width:900px){.notes{grid-template-columns:1fr}}
+.note{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.note h3{margin:0 0 6px;font-size:14px}
+.note ul{margin:0;padding-left:18px} .note li{margin:3px 0}
+.note.inh h3{color:var(--ok)} .note.chg h3{color:var(--accent-ink)} .note.fit h3{color:var(--blue)}
+
+/* ---- host chrome ---- */
+.hside{width:200px;background:var(--host);border-right:1px solid var(--line);padding:14px 12px;display:flex;flex-direction:column;gap:8px;flex:none;position:relative}
+.hside .logo{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px}
+.hside .logo small{background:var(--ink);color:#fff;font-size:9px;padding:1px 4px;border-radius:3px}
+.hside .newbtn{background:var(--accent);color:#fff;border-radius:9px;text-align:center;padding:7px;font-weight:600}
+.hside .it{color:var(--ink2);padding:3px 4px}
+.hside .grp{color:var(--ink3);font-size:11px;margin-top:6px}
+.hside .ses{padding:3px 6px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)}
+.hside .ses.on{background:#e4ddd2;color:var(--ink)}
+.hside .mode{margin-top:auto;border-top:1px solid var(--line);padding-top:8px;color:var(--ink3);font-size:11px}
+.hosttag{position:absolute;right:8px;top:8px;font-size:10px;color:var(--ink3);background:#fff8;border:1px dashed var(--ink3);padding:0 5px;border-radius:4px}
+.chat{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--line);min-width:0;background:var(--paper);position:relative}
+.chat .top{padding:10px 18px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center}
+.chat .top b{font-weight:600}
+.chat .top span{color:var(--ink3);font-size:12px}
+.chat .body{flex:1;padding:16px 22px;overflow:hidden;color:var(--ink2)}
+.msg{margin-bottom:12px}
+.msg.u{background:#eef2fb;border-radius:12px;padding:8px 12px;margin-left:80px;color:var(--ink)}
+.chat .input{margin:10px 16px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px 14px;color:var(--ink3);height:70px}
+.ccard{border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px;margin:8px 0}
+.ccard .t{font-weight:600;color:var(--ink)}
+
+/* ---- business ---- */
+.panel{background:var(--paper);display:flex;flex-direction:column;min-width:0}
+.ptabs{display:flex;gap:4px;padding:8px 12px 0;border-bottom:1px solid var(--line)}
+.ptabs div{padding:6px 12px;border-radius:8px 8px 0 0;color:var(--ink2)}
+.ptabs div.on{background:#fff;border:1px solid var(--line);border-bottom-color:#fff;margin-bottom:-1px;color:var(--ink);font-weight:600}
+.ptabs .n{display:inline-block;min-width:16px;padding:0 4px;border-radius:8px;background:var(--accent);color:#fff;font-size:10px;text-align:center;margin-left:3px;line-height:16px}
+.status{display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line2);flex-wrap:wrap;font-size:12px}
+.pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:1px 9px;color:var(--ink2);white-space:nowrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.d-ok{background:var(--ok)} .d-warn{background:var(--warn)} .d-bad{background:var(--bad)} .d-off{background:#bbb}
+.search{margin:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px 10px;color:var(--ink3)}
+.chip{display:inline-block;font-size:11px;padding:0 7px;border-radius:5px;line-height:18px;white-space:nowrap}
+.c-meet{background:var(--blue-soft);color:var(--blue)} .c-idea{background:var(--warn-soft);color:#94680f} .c-class{background:var(--violet-soft);color:var(--violet)}
+.c-ok{background:var(--ok-soft);color:var(--ok)} .c-run{background:var(--accent-soft);color:var(--accent-ink)} .c-q{background:#eee;color:#777} .c-bad{background:var(--bad-soft);color:var(--bad)}
+.btn{display:inline-block;border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 10px;font-size:12px;color:var(--ink)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{background:transparent}
+.drop{border:1.5px dashed #d8c9b8;border-radius:10px;padding:10px;text-align:center;color:var(--ink2);background:#fffdf9}
+.row{display:flex;align-items:center;gap:8px}
+.bar{height:4px;background:var(--line2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.mk{position:absolute;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #fff;z-index:3}
+.mk.g{background:var(--ok)}
+.muted{color:var(--ink3)} .small{font-size:12px}
+.sec{font-size:11px;color:var(--ink3);letter-spacing:.04em;margin:10px 0 6px}
+.list .li{padding:8px 10px;border-radius:8px;border:1px solid transparent}
+.list .li.on{background:#fff;border-color:var(--line)}
+.list .li .t{color:var(--ink);font-weight:500}
+.kbd{font-family:var(--mono);font-size:11px;background:#f2ede6;padding:0 4px;border-radius:3px;color:var(--ink2)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;color:var(--ink2);font-size:12px}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:14px;height:10px;border-radius:2px;display:inline-block}
+.cmp th,.cmp td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.cmp{border-collapse:collapse;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+.cmp th{background:#efe9df;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>工作台布局草图</h1>
+  <p class="sub">参考布局拆解 + 四版候选（都是候选，未定）。灰底左栏是 DSH Desktop 宿主自带，工作台改不了；暖白区域是我们自己的业务面板。</p>
+  <nav id="nav">
+    <button data-k="ref" class="on">0 · 参考布局拆解</button>
+    <button data-k="a">A · 标准分栏 · 按流程分页</button>
+    <button data-k="b">B · 整页看板 + 对话抽屉</button>
+    <button data-k="c">C · 条目工作区（审稿发布）</button>
+    <button data-k="d">D · 窄侧栏 · 今日待办</button>
+    <button data-k="cmp">对比与建议</button>
+  </nav>
+
+<!-- ================= 0 参考 ================= -->
+<section id="ref" class="on">
+  <div class="lead">参考截图的结构示意（重画，不是原图）。编号对应下面的分析：<b>绿色</b>是建议继承的，<b>橙色</b>是建议改进的。</div>
+  <div class="stage"><div class="frame">
+    <div class="hside">
+      <div class="logo">deepseek <small>HARNESS</small></div>
+      <div class="newbtn">⊕ 新会话</div>
+      <div class="it">插件</div><div class="it">自动化任务</div><div class="it">记忆系统</div>
+      <div class="grp">工作区 · AI Workspace</div>
+      <div class="ses on">贷款暂停及提前还款邮件…</div><div class="ses">按比例保证责任条款修…</div><div class="ses">Redbook</div><div class="ses">DSH 工作台插件</div><div class="ses">Translation</div>
+      <div class="mode">宿主侧栏</div>
+    </div>
+    <div class="chat" style="flex:0 0 520px">
+      <div class="top"><b>贷款暂停及提前还款邮件修改</b><span>2 个子智能体</span><span style="margin-left:auto">对话 · 轨迹</span></div>
+      <div class="body">
+        <div class="msg">这次提交的操作与 1 小时前那次是同一个动作，规则库此前已写入……</div>
+        <div class="ccard" style="background:#fbefe9;border-color:#efcfc0"><div class="t" style="color:var(--accent-ink)">重复提交已忽略</div><div class="small">同一张「规则候选 v1」卡片被再次提交……</div></div>
+        <div class="ccard small">
+          <div class="row"><span class="muted" style="width:90px">已吸收终稿</span>1 份</div>
+          <div class="row"><span class="muted" style="width:90px">待观察规则</span>R-001、R-002、R-003（各 1/3）</div>
+          <div class="row"><span class="muted" style="width:90px">硬规则/软规则</span>0 / 0</div>
+          <div class="row"><span class="muted" style="width:90px">最后写入</span>2026-10-26 · 终稿 #001</div>
+        </div>
+        <div class="msg">如果想改动已定的规则，请直接说明……</div>
+      </div>
+      <div class="input">发消息或创建任务…</div>
+      <div class="mk g" style="left:14px;top:150px">5</div>
+      <div class="mk" style="left:14px;top:270px">6</div>
+    </div>
+    <div class="panel" style="flex:1">
+      <div class="status" style="justify-content:flex-end">
+        <span class="pill" style="background:#fbe7df;color:var(--accent-ink)">DeepSeek ¥8.88</span><span class="pill">语音 19.87h</span><span class="pill">法宝 10000</span><span class="pill">A− A+ ⟳</span>
+      </div>
+      <div class="ptabs" style="flex-wrap:wrap"><div>SOP</div><div>邮件起草</div><div class="on">录音</div><div>术语表</div><div>报销填表</div><div>尽调清单</div></div>
+      <div class="search">搜索笔记 / 术语 / 邮件规则…</div>
+      <div style="flex:1;display:flex;margin:4px 12px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden">
+        <div style="width:250px;border-right:1px solid var(--line);padding:10px">
+          <div class="row" style="justify-content:space-between"><b>录音</b><span class="small muted">导入音频 · 火山(流式)▾ · 专注</span></div>
+          <div class="sec">录音（6）</div>
+          <div class="small" style="line-height:2">2026-10-26 2227 <span class="muted" style="float:right">00:58</span><br>2026-10-26 2222 <span class="muted" style="float:right">00:21</span><br>2026-10-26 Test 1 <span class="muted" style="float:right">00:26</span><br>2026-10-26 1851 <span class="muted" style="float:right">00:02</span><br>争议解决方式 <span class="muted" style="float:right">01:18</span><br>2026-10-26 1818 <span class="muted" style="float:right">00:37</span></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink3)">
+          左边选一条录音，或点下方麦克风开始录制
+          <div style="margin-top:auto;margin-bottom:14px;width:90%;display:flex;align-items:center;gap:10px"><span style="width:42px;height:42px;border-radius:12px;background:var(--accent);display:inline-block"></span><span class="small">点麦克风开始；或从左边选一条已有录音</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="mk g" style="left:740px;top:12px">1</div>
+    <div class="mk g" style="left:1000px;top:10px">2</div>
+    <div class="mk" style="left:722px;top:52px">3</div>
+    <div class="mk g" style="left:740px;top:92px">4</div>
+    <div class="mk" style="left:1003px;top:440px">7</div>
+    <div class="mk" style="left:1080px;top:330px">8</div>
+    <div class="mk" style="left:1003px;top:300px">9</div>
+  </div></div>
+
+  <div class="notes">
+    <div class="note inh"><h3>可以继承</h3><ul>
+      <li><b>① 标准分栏</b>：对话在中间，业务面板在右侧，AI 和业务数据同屏，一边看一边让 AI 干活。</li>
+      <li><b>② 费用/额度常驻</b>：DeepSeek 余额、语音剩余时长放在顶部，花钱的东西随时看得到。</li>
+      <li><b>④ 一个搜索框搜所有</b>：笔记、术语、规则一起搜，是进 Obsidian 库最快的入口。</li>
+      <li><b>⑤ AI 回复里出结构化卡片</b>：「已吸收终稿 / 待观察规则 1/3」这种卡片把 AI 做了什么讲清楚。</li>
+      <li><b>⑤ 从终稿学规则</b>：同一条规则观察到 3 次才转正，这个机制可以直接借来学你的写作和改写风格。</li>
+      <li>一个工作台包里放多个分页（她 6 个工具都在一个包里），维护简单。</li>
+    </ul></div>
+    <div class="note chg"><h3>建议改进</h3><ul>
+      <li><b>③ 分页按工具分</b>（SOP、邮件、录音、术语…），彼此没有先后。你的场景是一条流水线（录音→素材→选题→文章→发布），按流程分页更顺。</li>
+      <li><b>⑥ 重要状态埋在聊天里</b>：规则库状态只出现在对话卡片中，聊天一滚动就找不到。这类状态应常驻在面板。</li>
+      <li><b>⑦ 面板里再分左右两栏</b>：右侧本来就只有 ~800px，再切成列表+详情，详情区大半是空白提示语。</li>
+      <li><b>⑧ 录音列表信息太少</b>：只有时间戳和时长，看不出是什么内容、有没有转完、在哪一步。</li>
+      <li><b>⑨ 两处录音入口 + 引擎下拉</b>：底部麦克风和空白提示重复；切换引擎对日常使用意义不大。</li>
+      <li>没有<b>连接状态</b>。你已定「断网不排队、直接失败」，所以 Mac mini、Windows 在不在线必须一眼可见。</li>
+    </ul></div>
+    <div class="note fit"><h3>和你的方案不同的地方</h3><ul>
+      <li><b>录音方式</b>：她用火山引擎（豆包）流式识别，边录边转；你已定手机录音→传到 MacBook→拖入上传→家里 Windows 显卡转写，是「文件、异步」的。界面重点应是<b>上传和进度</b>，不是录音按钮。</li>
+      <li><b>Obsidian 接法</b>：她在工作台里仿做了一个 Obsidian 界面。你已经装了 Obsidian，又定了「只有你改主稿」，面板只需<b>列出、预览、跳转</b>（<span class="kbd">obsidian://open</span> 链接），编辑留在 Obsidian，不必重做一个编辑器。</li>
+      <li>她偏法律文书（法宝、尽调、保证条款），你的是内容生产 + 多平台发布，多了「确认发布」这一步。</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ================= A ================= -->
+<section id="a">
+  <div class="lead"><b>A · 标准分栏，按流程分页。</b>最接近参考布局，改动最小：对话在中间，右侧面板按「录音 → 素材 → 选题 → 文章 → 提醒」分页；面板内改成上下排布，不再左右切。</div>
+  <div class="stage"><div class="frame">
+    <div class="hside">
+      <div class="logo">DSH Desktop</div><div class="newbtn">⊕ 新会话</div>
+      <div class="grp">内容工作台 · 会话</div>
+      <div class="ses on">讨论：周会录音的写作角度</div><div class="ses">Obsidian 迁移那篇改知乎版</div><div class="ses">本周选题</div>
+      <div class="mode">模式：内容工作台</div><span class="hosttag">宿主</span>
+    </div>
+    <div class="chat">
+      <div class="top"><b>讨论：周会录音的写作角度</b><span>内容工作台</span></div>
+      <div class="body">
+        <div class="msg u">帮我从周会录音里挑两个能写成文章的点</div>
+        <div class="msg">我读了 <span class="kbd">素材/2026-11-04-周会录音/index.md</span> 和文字稿，有两个角度比较有料：</div>
+        <div class="ccard"><div class="t">选题候选 · 2 条</div><div class="small">① 小团队为什么不该先上自动化 &nbsp; ② 会议纪要谁来写<br><span class="btn" style="margin-top:6px">写入选题简报</span> <span class="btn ghost">都不要</span></div></div>
+      </div>
+      <div class="input">发消息… 面板里点「交给 AI」会把开场草稿放到这里，由你自己发送</div>
+    </div>
+    <div class="panel" style="flex:0 0 470px">
+      <div class="status">
+        <span class="pill"><span class="dot d-ok"></span>Mac mini</span>
+        <span class="pill"><span class="dot d-warn"></span>Windows 休眠</span>
+        <span class="pill"><span class="dot d-ok"></span>NAS</span>
+        <span class="pill" style="margin-left:auto;background:var(--accent-soft);color:var(--accent-ink)">DeepSeek ¥86.20</span>
+      </div>
+      <div class="ptabs"><div class="on">录音<span class="n">1</span></div><div>素材</div><div>选题</div><div>文章<span class="n">2</span></div><div>提醒</div></div>
+      <div style="padding:10px 12px;flex:1;overflow:hidden;background:#fff">
+        <div class="drop">拖入录音文件上传到家里 · 或 <u>选择文件</u><div class="small muted">类型（会议/灵感/课程）由 AI 自动判断</div></div>
+        <div class="sec">进行中</div>
+        <div class="li" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px">
+          <div class="row"><span class="t">AI 产品课 第 3 讲</span><span class="chip c-class">课程</span><span class="muted small" style="margin-left:auto">1:52:10</span></div>
+          <div class="row small muted" style="margin:4px 0">上传 ✓ · 排队 ✓ · <b style="color:var(--accent-ink)">转写 62%</b> · 摘要 · 入库</div>
+          <div class="bar"><i style="width:62%"></i></div>
+        </div>
+        <div class="sec">最近完成</div>
+        <div class="list">
+          <div class="li on">
+            <div class="row"><span class="t">周会：Q4 内容排期</span><span class="chip c-meet">会议</span><span class="muted small" style="margin-left:auto">11-04 · 58:12</span></div>
+            <div class="small" style="color:var(--ink2);margin:6px 0">结论：每周二出选题简报；知乎、小红书先半自动……<br>要点 5 条 · 可用素材 3 条</div>
+            <div class="row"><span class="btn">在 Obsidian 打开</span><span class="btn">交给 AI 讨论</span><span class="btn ghost">类型不对？</span></div>
+          </div>
+          <div class="li"><div class="row"><span class="t">通勤路上：关于笔记迁移</span><span class="chip c-idea">灵感</span><span class="muted small" style="margin-left:auto">11-03 · 4:21</span></div></div>
+          <div class="li"><div class="row"><span class="t">一段 2 小时讲座</span><span class="chip c-bad">失败：家里连不上</span><span class="btn" style="margin-left:auto">重试</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="mk" style="left:799px;top:10px">1</div>
+    <div class="mk" style="left:799px;top:48px">2</div>
+    <div class="mk" style="left:799px;top:96px">3</div>
+    <div class="mk" style="left:799px;top:200px">4</div>
+    <div class="mk" style="left:799px;top:300px">5</div>
+    <div class="mk" style="left:1252px;top:440px">6</div>
+  </div></div>
+  <div class="notes">
+    <div class="note inh"><h3>继承自参考</h3><ul><li>标准分栏（对话 + 右侧面板）</li><li>顶部常驻费用；一个包多个分页</li><li>AI 回复里给可点的结构化卡片</li></ul></div>
+    <div class="note chg"><h3>改了什么</h3><ul>
+      <li>① 连接状态灯：Mac mini / Windows / NAS，断网时直接看到为什么失败</li>
+      <li>② 分页按流程排，红点只提示「要你处理」的数量</li>
+      <li>③ 拖入上传代替麦克风，符合已定的手机录音流程</li>
+      <li>④ 每条录音显示五步进度，⑤ 完成后展开摘要，不再留空白详情区</li>
+      <li>⑥ 失败的就地给「重试」，对应「断网不排队」</li>
+      <li>「交给 AI 讨论」只写开场草稿，由你自己发送（规范要求）</li>
+    </ul></div>
+    <div class="note fit"><h3>适合 / 不适合</h3><ul><li>适合：以聊天为主、面板做辅助的日常使用；录音、素材这类一条一条看的东西</li><li>不适合：同时比较多个平台版本、批量审稿——右侧 470px 太窄</li><li>开发量：最小，一个 <span class="kbd">标准分栏</span> 面板</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= B ================= -->
+<section id="b">
+  <div class="lead"><b>B · 业务整页（customFrame）看板 + 需要时才拉出对话。</b>打开工作台先看到整条内容线的全貌，每张卡是内容库里的一个条目；对话从右侧抽屉拉出，用的是宿主原生对话组件。</div>
+  <div class="stage"><div class="frame">
+    <div class="hside">
+      <div class="logo">DSH Desktop</div><div class="newbtn">⊕ 新会话</div>
+      <div class="grp">内容工作台 · 会话</div>
+      <div class="ses">讨论：周会录音的写作角度</div><div class="ses on">Obsidian 迁移那篇改知乎版</div>
+      <div class="mode">模式：内容工作台</div><span class="hosttag">宿主</span>
+    </div>
+    <div class="panel" style="flex:1;position:relative">
+      <div class="status" style="padding:10px 16px">
+        <b style="font-size:15px;margin-right:8px">内容线</b>
+        <span class="search" style="margin:0;width:300px">搜索内容库（笔记、素材、文章）⌘K</span>
+        <span class="pill"><span class="dot d-ok"></span>Mac mini</span><span class="pill"><span class="dot d-warn"></span>Windows 休眠</span><span class="pill"><span class="dot d-ok"></span>NAS</span>
+        <span class="pill" style="background:var(--accent-soft);color:var(--accent-ink)">¥86.20</span>
+        <span class="btn" style="margin-left:auto">＋ 拖入录音</span><span class="btn pri">问 AI ›</span>
+      </div>
+      <div style="display:flex;gap:10px;padding:12px 14px;flex:1;overflow:hidden;background:#f6f2ec">
+        <!-- columns -->
+        <div style="flex:1;min-width:0"><div class="sec">素材 · 6</div>
+          <div class="ccard"><div class="row"><span class="chip c-class">课程</span><span class="chip c-run">转写 62%</span></div><div class="t" style="margin-top:4px">AI 产品课 第 3 讲</div><div class="bar" style="margin-top:6px"><i style="width:62%"></i></div></div>
+          <div class="ccard"><span class="chip c-meet">会议</span><div class="t">周会：Q4 内容排期</div><div class="small muted">可用素材 3 条</div></div>
+          <div class="ccard"><span class="chip c-idea">灵感</span><div class="t">通勤：笔记迁移</div></div>
+        </div>
+        <div style="flex:1;min-width:0"><div class="sec">选题 · 3</div>
+          <div class="ccard"><div class="t">小团队别先上自动化</div><div class="small muted">来自：周会 · 11-05 简报</div></div>
+          <div class="ccard"><div class="t">会议纪要谁来写</div></div>
+        </div>
+        <div style="flex:1;min-width:0"><div class="sec">草稿 · 1</div>
+          <div class="ccard"><div class="t">我的写作流水线</div><div class="small muted">你在写 · 1,200 字</div><div class="small" style="margin-top:4px">截稿 11-08 <span class="chip c-q">提醒</span></div></div>
+        </div>
+        <div style="flex:1;min-width:0"><div class="sec">成稿 → 待确认 · 2</div>
+          <div class="ccard" style="border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)"><div class="t">为什么我把笔记搬到 Obsidian</div><div class="row small" style="margin-top:4px;flex-wrap:wrap"><span class="chip c-ok">知乎 ✓</span><span class="chip c-ok">小红书 ✓</span><span class="chip c-run">Rin 生成中</span></div><span class="btn pri" style="margin-top:6px">审稿并确认</span></div>
+          <div class="ccard"><div class="t">DeepSeek 一个月花了多少钱</div><div class="small muted">平台版本已生成</div></div>
+        </div>
+        <div style="flex:1;min-width:0;opacity:.75"><div class="sec">已发布 · 12</div>
+          <div class="ccard"><div class="t">语雀迁移踩坑</div><div class="small muted">知乎 · 小红书 · Rin · 11-01</div></div>
+          <div class="ccard"><div class="t">Mac mini 当服务器</div><div class="small muted">10-28</div></div>
+        </div>
+        <div style="width:380px;flex:none;margin:-12px -14px -12px 0;background:var(--paper);border-left:1px solid var(--line);box-shadow:-8px 0 20px rgba(0,0,0,.06);display:flex;flex-direction:column">
+          <div class="row" style="padding:10px 14px;border-bottom:1px solid var(--line)"><b>AI 对话</b><span class="small muted">· 宿主原生组件</span><span style="margin-left:auto" class="muted">收起 ›</span></div>
+          <div style="padding:12px 14px;flex:1;color:var(--ink2)">
+            <div class="ccard small"><b>上下文</b>：为什么我把笔记搬到 Obsidian<br><span class="muted">已附：index.md、知乎.md、小红书.md</span></div>
+            <div class="msg u small" style="margin-left:40px">知乎版开头太像广告，改得克制一点</div>
+            <div class="msg small">已改 <span class="kbd">知乎.md</span> 前三段，看板会自动刷新。</div>
+          </div>
+          <div class="input" style="margin:10px">发消息…</div>
+        </div>
+      </div>
+    </div>
+    <div class="mk" style="left:262px;top:12px">1</div>
+    <div class="mk" style="left:920px;top:12px">2</div>
+    <div class="mk" style="left:206px;top:70px">3</div>
+    <div class="mk" style="left:612px;top:160px">4</div>
+    <div class="mk" style="left:892px;top:70px">5</div>
+  </div></div>
+  <div class="notes">
+    <div class="note inh"><h3>继承自参考</h3><ul><li>顶部常驻费用、统一搜索</li><li>AI 改文件 → 界面自动刷新（参考里「规则写入→卡片」的思路，也是官方选址示例的做法）</li></ul></div>
+    <div class="note chg"><h3>改了什么</h3><ul>
+      <li>① 搜索放到最显眼处，搜整个 Obsidian 库</li>
+      <li>② 对话默认收起，点「问 AI」才拉出，并自动带上选中卡片的文件作为上下文</li>
+      <li>③ 列 = 主稿开头的状态字段；卡片位置直接反映 <span class="kbd">index.md</span> 里的状态</li>
+      <li>④ 截稿等提醒挂在卡片上，不单独开页</li>
+      <li>⑤ 「审稿并确认」是唯一会改 <span class="kbd">index.md</span> 的按钮（只改状态字段）</li>
+    </ul></div>
+    <div class="note fit"><h3>适合 / 不适合</h3><ul><li>适合：每周开工先看全貌；规范推荐看板类用 customFrame</li><li>不适合：看录音摘要、审某一篇的细节——要点进去（可配合 C）</li><li>注意：Obsidian 自带 Bases 也能做出类似看板（方案 2.1 提过，未实测），先试 Bases 可能更省事</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= C ================= -->
+<section id="c">
+  <div class="lead"><b>C · 条目工作区（审稿发布）。</b>整页三栏：左边条目列表，中间看一个条目的主稿和各平台版本（可对照），右边固定一栏宿主对话。专门解决「确认一次再发布」这一步。</div>
+  <div class="stage"><div class="frame">
+    <div class="hside" style="width:56px;padding:12px 6px;align-items:center">
+      <div style="width:28px;height:28px;border-radius:8px;background:var(--ink)"></div>
+      <div style="width:28px;height:28px;border-radius:8px;background:var(--accent);margin-top:8px"></div>
+      <div class="mode" style="font-size:9px;text-align:center">侧栏收起</div>
+    </div>
+    <div style="width:250px;flex:none;border-right:1px solid var(--line);background:var(--paper);padding:12px;position:relative">
+      <div class="search" style="margin:0 0 8px">搜索条目…</div>
+      <div class="row small"><span class="pill">全部</span><span class="pill" style="background:var(--ink);color:#fff">待确认 2</span><span class="pill">草稿</span></div>
+      <div class="sec">待确认</div>
+      <div class="list">
+        <div class="li on"><div class="t">为什么我把笔记搬到 Obsidian</div><div class="small muted">成稿 · 3 个平台版本 · 11-05</div></div>
+        <div class="li"><div class="t">DeepSeek 一个月花了多少钱</div><div class="small muted">成稿 · 2 个平台版本</div></div>
+      </div>
+      <div class="sec">草稿</div>
+      <div class="list"><div class="li"><div class="t">我的写作流水线</div><div class="small muted">截稿 11-08</div></div></div>
+      <div class="sec">已发布（12）</div>
+      <div class="list small muted"><div class="li">语雀迁移踩坑</div><div class="li">Mac mini 当服务器</div></div>
+    </div>
+    <div class="panel" style="flex:1;background:#fff">
+      <div class="row" style="padding:10px 16px;border-bottom:1px solid var(--line)">
+        <b style="font-size:15px">为什么我把笔记搬到 Obsidian</b><span class="chip c-run">成稿</span>
+        <span style="margin-left:auto" class="small muted">文章/2026-11-05-笔记搬家/</span><span class="btn">在 Obsidian 打开</span>
+      </div>
+      <div class="ptabs"><div>主稿</div><div class="on">知乎</div><div>小红书</div><div>Rin 博客</div><div>发布记录</div><div class="muted" style="margin-left:auto;font-size:12px">☐ 对照主稿</div></div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div style="flex:1;padding:14px 18px;border-right:1px dashed var(--line);color:var(--ink2)">
+          <div class="sec">主稿（只读）</div>
+          <p>去年我在语雀上攒了四百多篇笔记，直到有一天发现图片链接全部指向一个随时可能失效的服务器……</p>
+          <p class="muted">……</p>
+        </div>
+        <div style="flex:1;padding:14px 18px;color:var(--ink)">
+          <div class="sec">知乎版（AI 生成，可让 AI 改）</div>
+          <p><span style="background:#fde9c8">你的笔记，真的属于你吗？</span>去年我在语雀上攒了四百多篇笔记，直到有一天……</p>
+          <p class="muted">……</p>
+          <div class="ccard small" style="background:#fbf6ee"><b>按已学规则检查</b>：R-002 标题不用问句 <span class="chip c-bad">不符</span> &nbsp; R-005 结尾加讨论问题 <span class="chip c-ok">符合</span></div>
+        </div>
+      </div>
+      <div class="row" style="padding:10px 16px;border-top:1px solid var(--line);background:var(--paper)">
+        <span class="small">发布前检查：</span><span class="chip c-ok">知乎 ✓</span><span class="chip c-ok">小红书 ✓</span><span class="chip c-q">Rin 待看</span><span class="chip c-ok">图片 4/4</span>
+        <span class="btn" style="margin-left:auto">打开知乎发布页并复制</span><span class="btn pri">确认 → 状态改为「已确认」</span>
+      </div>
+    </div>
+    <div class="chat" style="flex:0 0 330px;border-right:none;border-left:1px solid var(--line)">
+      <div class="top"><b>AI</b><span>宿主原生对话 · 本条目会话</span></div>
+      <div class="body small">
+        <div class="msg u" style="margin-left:30px">标题别用问句，按 R-002 改</div>
+        <div class="msg">已改 <span class="kbd">知乎.md</span> 标题：「从语雀搬到 Obsidian 的四百篇笔记」</div>
+        <div class="ccard"><div class="t">规则观察</div>R-002 标题不用问句：2/3 → 再出现一次转为硬规则</div>
+      </div>
+      <div class="input">发消息…</div>
+    </div>
+    <div class="mk" style="left:470px;top:94px">1</div>
+    <div class="mk" style="left:830px;top:94px">2</div>
+    <div class="mk" style="left:640px;top:262px">3</div>
+    <div class="mk" style="left:770px;top:722px">4</div>
+    <div class="mk g" style="left:1180px;top:190px">5</div>
+  </div></div>
+  <div class="notes">
+    <div class="note inh"><h3>继承自参考</h3><ul><li>⑤ 规则学习机制：从你改过的平台版本里学规则，观察 3 次转正；状态既出现在对话卡片里，也常驻在审稿区</li><li>对话和业务同屏</li></ul></div>
+    <div class="note chg"><h3>改了什么</h3><ul>
+      <li>① 按状态筛选条目，「待确认」置顶</li>
+      <li>② 平台版本分页 + 一键对照主稿</li>
+      <li>③ 生成稿按已学规则自动检查</li>
+      <li>④ 底部发布条：先半自动（打开发布页 + 复制），确认只改状态字段</li>
+      <li>宿主侧栏收起，给三栏让位置（规范要求不能挡住宿主切换器）</li>
+    </ul></div>
+    <div class="note fit"><h3>适合 / 不适合</h3><ul><li>适合：一篇文章审稿、发布这一步，信息密度最高</li><li>不适合：录音、选题这类轻量浏览；窄窗口时要把对话栏折叠</li><li>开发量：最大，但这是整条线里唯一必须有界面的环节</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= D ================= -->
+<section id="d">
+  <div class="lead"><b>D · 窄侧栏 · 今日待办。</b>对话占大部分屏幕，右侧只放一条 340px 的「今天要处理什么」。不分页，所有东西按「需要你做的」排序，点一下再进对应内容。</div>
+  <div class="stage"><div class="frame">
+    <div class="hside">
+      <div class="logo">DSH Desktop</div><div class="newbtn">⊕ 新会话</div>
+      <div class="grp">内容工作台 · 会话</div><div class="ses on">随便聊聊</div><div class="ses">本周选题</div>
+      <div class="mode">模式：内容工作台</div><span class="hosttag">宿主</span>
+    </div>
+    <div class="chat">
+      <div class="top"><b>随便聊聊</b><span>内容工作台</span></div>
+      <div class="body">
+        <div class="msg u">今天有什么要我处理的？</div>
+        <div class="msg">右边列了 3 件：两篇等你确认发布，一份新的选题简报。第 3 讲课程录音还在转写，大约 20 分钟后完成，完成会发邮件。</div>
+      </div>
+      <div class="input">发消息…</div>
+    </div>
+    <div class="panel" style="flex:0 0 340px;background:#fff">
+      <div class="status"><span class="pill"><span class="dot d-ok"></span>家里在线</span><span class="pill"><span class="dot d-warn"></span>GPU 休眠</span><span class="pill" style="margin-left:auto">¥86.20</span></div>
+      <div class="search">搜索内容库 ⌘K</div>
+      <div style="padding:0 12px;flex:1;overflow:hidden">
+        <div class="drop small">拖入录音上传</div>
+        <div class="sec">等你处理 · 3</div>
+        <div class="ccard"><div class="row"><span class="chip c-run">待确认</span><span class="t">笔记搬到 Obsidian</span></div><div class="small muted">知乎、小红书已生成 · <u>去审稿</u></div></div>
+        <div class="ccard"><div class="row"><span class="chip c-run">待确认</span><span class="t">DeepSeek 一个月花多少</span></div></div>
+        <div class="ccard"><div class="row"><span class="chip c-q">新简报</span><span class="t">11-05 选题简报 · 5 条</span></div></div>
+        <div class="sec">进行中</div>
+        <div class="small">AI 产品课 第 3 讲 <span class="muted" style="float:right">转写 62%</span></div><div class="bar" style="margin:4px 0 8px"><i style="width:62%"></i></div>
+        <div class="sec">今天的提醒</div>
+        <div class="small">14:00 · 回看上周知乎数据<br>周五 · 「我的写作流水线」截稿</div>
+        <div class="sec">风格规则</div>
+        <div class="small muted">硬规则 4 · 观察中 R-002 (2/3)、R-006 (1/3)</div>
+      </div>
+    </div>
+    <div class="mk" style="left:928px;top:10px">1</div>
+    <div class="mk" style="left:928px;top:150px">2</div>
+    <div class="mk g" style="left:928px;top:480px">3</div>
+  </div></div>
+  <div class="notes">
+    <div class="note inh"><h3>继承自参考</h3><ul><li>标准分栏、顶部状态</li><li>③ 规则库状态常驻（参考里它只在聊天卡片中）</li></ul></div>
+    <div class="note chg"><h3>改了什么</h3><ul><li>① 连接状态合并成两颗灯，省空间</li><li>② 不分页，按「要你做的事」排序；点进去再跳到对应的会话或 C 版审稿页</li><li>深入的事交给 AI 对话去做，面板只当「今日清单」</li></ul></div>
+    <div class="note fit"><h3>适合 / 不适合</h3><ul><li>适合：MacBook 屏幕小、外出时；以对话为主的人</li><li>不适合：审稿对照、浏览大量素材</li><li>开发量：小；可以作为第一个版本先上线</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= 对比 ================= -->
+<section id="cmp">
+  <div class="lead">四版不是互斥的。DSH Desktop 一个工作台可以内部切换布局，也可以拆成两个包（方案草案附录 D 第 4 节里「一个还是两个工作台」仍未定）。</div>
+  <table class="cmp">
+    <tr><th></th><th>A 标准分栏·按流程分页</th><th>B 整页看板+对话抽屉</th><th>C 条目工作区</th><th>D 窄侧栏·今日待办</th></tr>
+    <tr><td><b>布局类型</b></td><td>标准分栏</td><td>业务整页（customFrame）</td><td>业务整页（customFrame）</td><td>标准分栏</td></tr>
+    <tr><td><b>主角</b></td><td>对话 + 面板各一半</td><td>内容线全貌</td><td>一篇文章的审稿发布</td><td>对话</td></tr>
+    <tr><td><b>最擅长</b></td><td>录音、素材逐条看</td><td>每周开工看全局</td><td>确认发布这一步</td><td>小屏、外出</td></tr>
+    <tr><td><b>和 Obsidian 的关系</b></td><td colspan="4">都只做列表、预览、状态显示和跳转；编辑主稿在 Obsidian 里。B 版可能直接被 Obsidian Bases 替代，值得先试。</td></tr>
+    <tr><td><b>开发量</b></td><td>小</td><td>中</td><td>大</td><td>最小</td></tr>
+  </table>
+  <div class="notes" style="grid-template-columns:1fr 1fr">
+    <div class="note fit"><h3>我的建议（候选，等你定）</h3><ul>
+      <li><b>D + C 组合</b>：平时用 D（窄侧栏，对话为主），点「去审稿」切到 C（整页审稿发布）。</li>
+      <li>A 的录音五步进度条放进 D 的「进行中」；B 的看板先用 Obsidian Bases 试，不够再做。</li>
+      <li>第一版只做 D，因为它覆盖录音上传和待办提示，开发最少，能最早用起来。</li>
+    </ul></div>
+    <div class="note chg"><h3>需要你决定的</h3><ul>
+      <li>平时更习惯「对话为主」还是「面板为主」？决定选 A/D 还是 B。</li>
+      <li>要不要借参考里的「从终稿学规则」机制（观察 3 次转正）？</li>
+      <li>要不要加实时录音（像参考那样接火山流式）？目前已定的是文件上传、家里转写，实时录音不在范围内。</li>
+    </ul></div>
+  </div>
+</section>
+</div>
+
+<script>
+const nav=document.getElementById('nav');
+function fit(){document.querySelectorAll('section.on .stage').forEach(s=>{const f=s.firstElementChild;const k=s.clientWidth/1280;f.style.transform=`scale(${k})`;s.style.height=(760*k)+'px';});}
+nav.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  nav.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.k));
+  try{localStorage.setItem('tab',b.dataset.k)}catch(_){}
+  fit();window.scrollTo({top:0});});
+try{const t=localStorage.getItem('tab');if(t){const b=nav.querySelector(`[data-k="${t}"]`);b&&b.click();}}catch(_){}
+addEventListener('resize',fit);fit();
+</script>
+</body>
+</html>
