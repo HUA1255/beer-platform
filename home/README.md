@@ -22,7 +22,7 @@
 | POST | `/recordings/{id}/stored` | Beer 写进内容库后确认，「入库」一步完成，随后删除 BeeBox 上的任务 |
 | GET | `/recordings/{id}/audio` | 下载录音原件；视频返回 `404 NO_AUDIO` |
 
-调度流程（BeeBox `/v1`，契约见 [HUA1255/voice-transcription](https://github.com/HUA1255/voice-transcription) 的 `openapi.json` 与 ADR-0009）：读 `GET /v1/health` 确认就绪 → `POST /v1/files` 流式上传得到文件 id → `POST /v1/jobs`（`kind=transcription`，`source: {type: "file", file_id}`；视频链接任务用 `source: {type: "url", url}`）→ 轮询 `GET /v1/jobs/{id}` → 导出 `/v1/jobs/{id}/exports/md` 和 `srt`、读 `/v1/jobs/{id}/result` 的 `source` → 摘要。每一步落库，服务重启后接着跑没完成的录音。
+调度流程（BeeBox `/v1`，契约见 [HUA1255/beebox](https://github.com/HUA1255/beebox) 的 `openapi.json` 与 ADR-0009）：读 `GET /v1/health` 确认就绪 → `POST /v1/files` 流式上传得到文件 id → `POST /v1/jobs`（`kind=transcription`，`source: {type: "file", file_id}`；视频链接任务用 `source: {type: "url", url}`）→ 轮询 `GET /v1/jobs/{id}` → 导出 `/v1/jobs/{id}/exports/md` 和 `srt`、读 `/v1/jobs/{id}/result` 的 `source` → 摘要。每一步落库，服务重启后接着跑没完成的录音。
 
 任务只看五种状态：`queued`（「排队」一步）、`running`（「转写」一步，`stage` 和 `progress` 显示进度，`progress` 换算成 0–100）、`succeeded`、`failed`、`cancelled`。重试时：
 - 任务 `failed` 且 `retryable` → `POST /v1/jobs/{id}/retry`，BeeBox 从断点接着跑，不重新上传；
@@ -118,6 +118,6 @@ uv run pytest
 
 - 服务只绑 Tailscale IP。开机时 Tailscale 可能比服务晚起来，绑定会失败，靠 `KeepAlive` 每 10 秒重试。Mac App Store 版 Tailscale 要用户登录后才连网；不登录也要能用的话，需要换成独立版 `tailscaled`。
 - 原件走 WebDAV，不再受「SMB 挂载要等用户登录」影响；但家里的 NAS 若关机或重启，上传仍会返回 `503 ORIGINALS_UNAVAILABLE`、`/health` 里 `nas.online` 为 `false`。LaunchDaemon 是系统级、比登录更早起来，WebDAV 只要网络通就能用。
-- Windows 端要先部署 BeeBox 并设置 `BEEBOX_API_TOKEN`（切换步骤见 HUA1255/voice-transcription#57）。
+- Windows 端要先部署 BeeBox 并设置 `BEEBOX_API_TOKEN`（部署见 [HUA1255/beebox](https://github.com/HUA1255/beebox) 的 README）。
 
 - 本机 shell 带 Clash 代理变量时，`NO_PROXY` 里的 `[::1]` 会让 httpx 建 URL 抛 `InvalidURL`，服务起不来（2026-11-07 实测）。launchd 环境没有这些变量，不受影响；手动调试时先清掉 `HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY` 再起。
