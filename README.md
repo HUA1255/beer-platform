@@ -12,7 +12,7 @@
 
 <p><a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="license"></a> <img src="https://img.shields.io/badge/stack-Node.js_·_FastAPI_·_Cloudflare_Workers-d9694a?style=flat-square" alt="stack"> <img src="https://img.shields.io/badge/version-0.1.22-blue?style=flat-square" alt="version"> <img src="https://img.shields.io/badge/platform-macOS_·_DSH_Desktop-555?style=flat-square" alt="platform"></p>
 
-<p><a href="#快速上手">快速上手</a> · <a href="#ai-agent-部署指南">AI Agent 部署</a> · <a href="#整体架构">整体架构</a> · <a href="#已知限制">已知限制</a> · <a href="beer/README.md">Beer 详细文档</a></p>
+<p><a href="https://github.com/HUA1255/beer-platform/releases/latest">下载安装包</a> · <a href="#快速上手">快速上手</a> · <a href="#ai-agent-部署指南">AI Agent 部署</a> · <a href="#整体架构">整体架构</a> · <a href="#已知限制">已知限制</a> · <a href="beer/README.md">Beer 详细文档</a></p>
 
 </div>
 
@@ -95,9 +95,15 @@ cd beer && npm ci && npm run demo
 
 ### 正式使用
 
-**运行要求**：macOS、[DSH Desktop](https://dshdesktop.com)（目标 0.13.2，内置 dsh 运行时 0.2.2-alpha.2）、Node.js 22+、一个 Obsidian 库。录音转写另需家里服务和 BeeBox，邮件提醒另需一个 Cloudflare 账号，都可以以后再加。
+**运行要求**：macOS、[DSH Desktop](https://dshdesktop.com)（目标 0.13.2，内置 dsh 运行时 0.2.2-alpha.2）、一个 Obsidian 库；自己从源码打包时另需 Node.js 22+。录音转写另需家里服务和 BeeBox，邮件提醒另需一个 Cloudflare 账号，都可以以后再加。
 
-**1. 打包**（用 DSH Desktop 自带的 pnpm）：
+**1. 下载安装包**：在 [Releases](https://github.com/HUA1255/beer-platform/releases/latest) 下载最新的 `beer-workbench-x.y.z.tgz`，不需要克隆仓库、也不需要装 Node。用命令行下载也可以：
+
+```bash
+gh release download --repo HUA1255/beer-platform --pattern 'beer-workbench-*.tgz'
+```
+
+想自己从源码打包也可以（用 DSH Desktop 自带的 pnpm，结果和 Releases 里的一样）：
 
 ```bash
 cd beer
@@ -111,7 +117,7 @@ node "/Applications/DSH Desktop.app/Contents/Resources/app.asar.unpacked/node_mo
 install_local_workbench({ path: "<beer-workbench-x.y.z.tgz 的绝对路径>", replace: false })
 ```
 
-返回 `applied` 就能用；`restart-required` 时点顶部提示的「立即重启」。更新同一个包时先升 `version`，再用 `replace: true`。
+返回 `applied` 就能用；`restart-required` 时点顶部提示的「立即重启」。以后升级：下载新版本的 tgz，用 `replace: true` 再装一次（自己打包时记得先升 `package.json` 里的 `version`）。
 
 **3. 第一次打开**：从左侧入口打开 Beer，选你的 Obsidian 库；点顶栏齿轮，在设置弹层里填需要的密钥（存进 macOS 钥匙串，不回显）。
 
@@ -145,30 +151,41 @@ Beer 的构建、测试、打包和三个服务的部署都可以交给 Claude C
 
 ```bash
 sw_vers                     # macOS
-node --version              # 22 或更高
-ls "/Applications/DSH Desktop.app/Contents/Resources/app.asar.unpacked/node_modules/pnpm/bin/pnpm.cjs"
+ls -d "/Applications/DSH Desktop.app"
+gh --version                # 下载 Releases 用
+node --version              # 22 或更高；只在从源码打包、部署提醒服务时需要
 ```
 
-检查：三条都正常输出。缺 Node 或 DSH Desktop 时先告诉用户，由用户决定是否安装。
+检查：前三条正常输出。缺 DSH Desktop、gh 或 Node 时先告诉用户，由用户决定是否安装（没有 gh 也可以在浏览器里从 Releases 页面下载）。
 
-**2. 获取代码并跑测试**
+**2. 获取代码**
 
 ```bash
 git clone https://github.com/HUA1255/beer-platform.git
-cd beer-platform/beer
-npm ci && npm test
+cd beer-platform
+git checkout $(git describe --tags --abbrev=0)   # 切到最新发布版本
 ```
 
-检查：`npm test` 全部通过（0.1.22 为 395 个）。
+检查：`git status` 干净，当前在形如 `v0.1.22` 的 tag 上。家里服务和提醒服务要从这份代码部署；只装 Beer 的话也可以跳过 clone，直接用第 3 步的下载。
 
-**3. 打包**
+**3. 准备安装包**
+
+默认直接下载 Releases 里的包，并核对校验值（Release 说明里写了 SHA-256）：
 
 ```bash
-node "/Applications/DSH Desktop.app/Contents/Resources/app.asar.unpacked/node_modules/pnpm/bin/pnpm.cjs" pack
+gh release download --repo HUA1255/beer-platform --pattern 'beer-workbench-*.tgz'
+shasum -a 256 beer-workbench-*.tgz
 tar -tzf beer-workbench-*.tgz | head -20
 ```
 
-检查：包里有 `package/package.json`、`package/src/index.js`、`package/client/beer-client.js`、`package/cordis.patch.yml`，没有 `test/`、`node_modules/`；tgz 小于 8 MiB。
+用户要求从源码构建时改为：
+
+```bash
+cd beer && npm ci && npm test       # 全部通过（0.1.22 为 395 个）
+node "/Applications/DSH Desktop.app/Contents/Resources/app.asar.unpacked/node_modules/pnpm/bin/pnpm.cjs" pack
+```
+
+检查：SHA-256 与 Release 说明一致（下载时）；包里有 `package/package.json`、`package/src/index.js`、`package/client/beer-client.js`、`package/cordis.patch.yml`，没有 `test/`、`node_modules/`；tgz 小于 8 MiB。
 
 **4. 安装（交给用户在 DSH Desktop 里做）**
 
