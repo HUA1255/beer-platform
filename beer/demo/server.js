@@ -128,8 +128,13 @@ for (const [rel, content] of Object.entries(demoVault())) {
 await mkdir(dataDir, { recursive: true })
 
 const secrets = { 'home-api-key': 'demo', 'opencode-go-api-key': 'demo' }
+// 演示时钟：从当天 14:20 起走，不管几点打开，首页日程看起来都一样（上午的会已结束、下午还有一件）
+const demoStart = new Date()
+demoStart.setHours(14, 20, 0, 0)
+const clockShift = demoStart.getTime() - Date.now()
 const context = createBeerContext({
   config: { root: dataDir, homeApiBase: HOME, opencodeGoBase: OPENCODE },
+  now: () => new Date(Date.now() + clockShift),
   secrets: { get: async name => secrets[name], set: async (name, value) => { secrets[name] = value } },
   fetch: demoFetch,
 })

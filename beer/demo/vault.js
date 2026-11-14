@@ -97,5 +97,22 @@ export function demoVault() {
 
     '内容库/规则/硬规则.md': '# 硬规则\n\n- 小红书版本不超过 1000 字\n- 知乎版本保留原文的小标题结构\n',
     '内容库/规则/软规则.md': '# 软规则\n\n- 小红书开头一句话点题，少用长句\n- 结尾留一个问题引导评论\n',
+
+    // 首页「日程与待办」和月历读的文件（Obsidian Tasks 写法），日期都相对今天
+    '日程.md': [
+      `- [ ] 回复编辑的修改意见 %%beer id=demo1 src=对话%% 📅 ${day(1)}`,
+      `- [ ] 10:00–11:00 和编辑过专栏提纲（腾讯会议 123-456） #工作 %%beer id=demo2 src=对话 remind=default reminder=r-demo2%% 📅 ${today}`,
+      `- [ ] 16:00 录一段口述灵感 #录音 %%beer id=demo3 src=快速添加 remind=off%% 📅 ${today}`,
+      `- [x] 09:00 看昨天的读者留言 %%beer id=demo4 src=对话 remind=off%% 📅 ${today} ✅ ${today}`,
+      `- [ ] 交《效率工具》专栏稿 #写作 %%beer id=demo5 src=快速添加%% 📅 ${day(-1)}`,
+      `- [ ] 整理本周素材，挑下周选题 %%beer id=demo6 src=对话%% 🔁 every week 📅 ${day(-4)}`,
+      `- [ ] 14:00–15:00 线下分享：个人写作工作流 #分享 %%beer id=demo7 src=对话 remind=default reminder=r-demo7%% 📅 ${day(-9)}`,
+      '- [ ] 做一期 Beer 讲解视频 %%beer id=demo8 src=对话%% ⏱ 6h',
+      `    - [ ] 写讲解稿 %%beer id=demo9 src=对话%% ⏱ 2h ⏳ ${today}`,
+      '    - [ ] 录制 %%beer id=demo10 src=对话%% ⏱ 1h',
+      '    - [ ] 剪辑、配字幕 %%beer id=demo11 src=对话%% ⏱ 3h',
+      '- [ ] 试试把旧笔记批量补上标签 %%beer id=demo12 src=快速添加%% ⏱ 90m',
+      '',
+    ].join('\n'),
   }
 }
