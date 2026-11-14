@@ -1,5 +1,7 @@
 // 素材导入（#12）：把链接、本地图片 / PDF、文字整理成素材条目，供面板接口和 AI 工具共用。
 //   POST /api/beer/materials/import/url { url, title?, tags?, type? }  → 201 { entry }
+//     B 站 / YouTube 视频链接（#34）不当场写条目：交给家里转写，→ 202 { video }（家里的录音视图），
+//     进度在录音分页看，转写完由录音分页的取回写成「视频」条目。家里连不上 → 502「家里暂时连不上」。
 //   POST /api/beer/materials/import/file { filePath, title?, type?, tags?, summary? } → 201 { entry }
 //   POST /api/beer/materials/import/text { title, content, tags?, type? } → 201 { entry }
 // 条目结构和手动素材一样：`内容库/素材/<日期>-<名称>/index.md`，开头属性至少写标题、类型、标签、
@@ -9,6 +11,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { basename, extname, isAbsolute } from 'node:path'
 import { HttpError, reply } from '../http/router.js'
 import { createEntry } from './library.js'
+import { submitVideo } from './recordings.js'
 import { localDate } from '../dates.js'
 import {
   MATERIALS_FOLDER,
@@ -30,6 +33,9 @@ const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 /** 视频站只保存页面标题和简介，不抓正文。 */
 const VIDEO_HOSTS = ['youtube.com', 'youtu.be', 'bilibili.com', 'b23.tv', 'vimeo.com', 'douyin.com']
 
+/** 这几个站的视频交给家里转出文字稿和摘要（#34），和家里服务 POST /videos 收的一致。 */
+const TRANSCRIBE_HOSTS = ['bilibili.com', 'b23.tv', 'youtube.com', 'youtu.be']
+
 /** 本地文件导入支持的后缀，以及写进 `类型:` 的值。 */
 const FILE_TYPES = new Map([
   ['.jpg', '图片'],
@@ -43,7 +49,10 @@ const FILE_TYPES = new Map([
 
 export function register(router, ctx) {
   router.post('/materials/import/url', async req => {
-    const entry = await importUrl(ctx, (await req.json()) ?? {})
+    const body = (await req.json()) ?? {}
+    const url = normalizeUrl(body.url)
+    if (isTranscribableVideo(url)) return reply(202, { video: await submitVideoLink(ctx, url) })
+    const entry = await importUrl(ctx, body)
     return reply(201, { entry })
   })
   router.post('/materials/import/file', async req => {
@@ -64,6 +73,7 @@ export function register(router, ctx) {
  */
 export async function importUrl(ctx, body = {}) {
   const url = normalizeUrl(body.url)
+  if (body.type === '视频') throw new HttpError(400, 'url_invalid', '「视频」素材只支持 B 站和 YouTube 的视频链接')
   const tags = await assertKnownTags(ctx, body.tags ?? [])
   const video = isVideoUrl(url)
   const html = await fetchHtml(ctx, url)
@@ -214,8 +224,29 @@ function normalizeUrl(raw) {
 }
 
 function isVideoUrl(url) {
+  return hostIn(url, VIDEO_HOSTS)
+}
+
+function hostIn(url, sites) {
   const host = url.hostname.toLowerCase().replace(/^www\./, '')
-  return VIDEO_HOSTS.some(site => host === site || host.endsWith(`.${site}`))
+  return sites.some(site => host === site || host.endsWith(`.${site}`))
+}
+
+/** B 站 / YouTube 的链接：交给家里转写，不在这里抓页面。 */
+export function isTranscribableVideo(url) {
+  return hostIn(url, TRANSCRIBE_HOSTS)
+}
+
+/** 把视频链接交给家里；连不上时直接失败（不排队），并说清楚视频没提交。 */
+async function submitVideoLink(ctx, url) {
+  try {
+    return await submitVideo(ctx, url.toString())
+  } catch (e) {
+    if (e instanceof HttpError && e.code === 'home_unreachable') {
+      throw new HttpError(502, 'home_unreachable', '家里暂时连不上，视频没有提交；确认 Mac mini 在线后再试')
+    }
+    throw e
+  }
 }
 
 /** 抓页面：20 秒超时、普通浏览器 UA；网络错误、超时、非 2xx 一律 502 fetch_failed。 */
@@ -404,6 +435,13 @@ export async function saveMaterial(ctx, args = {}) {
   const type = materialTypeOf(args)
   const tags = args.tags ?? []
 
+  if (type === '视频' || (type === '链接' && isTranscribableArg(args.url))) {
+    const url = typeof args.url === 'string' && args.url.trim() ? normalizeUrl(args.url) : null
+    if (!url || !isTranscribableVideo(url)) {
+      throw new HttpError(400, 'url_invalid', '「视频」素材要提供 B 站或 YouTube 的视频链接 url')
+    }
+    return { video: await submitVideoLink(ctx, url) }
+  }
   if (type === '链接') {
     if (typeof args.url !== 'string' || !args.url.trim()) {
       throw new HttpError(400, 'url_invalid', '链接素材要提供 url')
@@ -453,6 +491,26 @@ function textOf(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function isTranscribableArg(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) return false
+  try {
+    const url = new URL(raw.trim())
+    return (url.protocol === 'http:' || url.protocol === 'https:') && isTranscribableVideo(url)
+  } catch {
+    return false
+  }
+}
+
+/** 视频提交后给 AI 看的文本：说清楚去哪看进度、什么时候出条目。 */
+export function formatVideoSubmission(video) {
+  return [
+    `已把视频交给家里转写：${video?.source_url ?? video?.title ?? ''}（编号 ${video?.id ?? '未知'}）`,
+    '进度在录音分页里看（提交链接 → 排队 → 转写 → 摘要 → 入库）；有字幕的视频直接用字幕，没有才跑语音识别。',
+    '转写完会发邮件通知，录音分页取回后在素材栏出现一条类型为「视频」的条目，带摘要和全文。',
+    '视频条目的标题用视频本身的标题，不带标签；需要标签的话等条目出来后再补。',
+  ].join('\n')
+}
+
 /** 工具执行结果给 AI 看的文本：新条目路径和属性。 */
 export function formatMaterialEntry(entry) {
   return [
@@ -476,21 +534,22 @@ export function createSaveMaterialTool(defineTool, ctx) {
       '把用户丢进对话的链接、图片、PDF 或文字整理成一条素材，写进 Obsidian 库的 内容库/素材/。',
       `写之前必须先读 ${GUIDE_PATH} 里的条目格式和类型说明，再读 ${TAGS_PATH}；`,
       '标签只能从标签表里选，表里没有的标签会被拒绝，需要新标签时先让用户改标签表。',
-      '文章链接抓正文，视频站只存页面标题和简介。',
+      '文章链接抓正文；B 站和 YouTube 的视频链接交给家里转出文字稿和摘要（几分钟后在素材栏出现「视频」条目），',
+      '其他视频站只存页面标题和简介。',
     ].join(''),
     parameters: {
       title: { type: 'string', required: true, description: '素材标题，必填' },
       type: {
         type: 'string',
-        enum: ['链接', '图片', 'PDF', '文字', '手动'],
-        description: '素材类型；不填时按 url / filePath / content 推断',
+        enum: ['链接', '视频', '图片', 'PDF', '文字', '手动'],
+        description: '素材类型；不填时按 url / filePath / content 推断。B 站、YouTube 链接按「视频」处理',
       },
       tags: {
         type: 'array',
         items: { type: 'string' },
         description: '标签数组，可以为空；每个标签都必须在 内容库/素材/标签表.md 里',
       },
-      url: { type: 'string', description: '链接来源；type 为「链接」或只给 url 时用' },
+      url: { type: 'string', description: '链接来源；type 为「链接」「视频」或只给 url 时用' },
       filePath: { type: 'string', description: '本地图片或 PDF 的绝对路径；type 为「图片」「PDF」时用' },
       content: { type: 'string', description: '文字正文；type 为「文字」时用' },
       summary: { type: 'string', description: '摘要；图片、PDF 识别文字后的摘要，或文字素材的正文' },
@@ -502,8 +561,8 @@ export function createSaveMaterialTool(defineTool, ctx) {
     presentCall: args => ({ card: 'generic', kind: 'other', title: '整理素材', rawInput: args }),
     async execute(args, exec) {
       exec?.signal?.throwIfAborted?.()
-      const entry = await saveMaterial(ctx, args)
-      return formatMaterialEntry(entry)
+      const saved = await saveMaterial(ctx, args)
+      return saved?.video ? formatVideoSubmission(saved.video) : formatMaterialEntry(saved)
     },
   })
 }

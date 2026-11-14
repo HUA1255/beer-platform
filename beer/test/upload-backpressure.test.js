@@ -127,9 +127,14 @@ test('AI 工具提交：家里读得慢时 Beer 内存峰值远小于文件大�
 })
 
 test('面板上传：家里没读完请求体就先回 503，Beer 照原样透传错误，不卡住', async t => {
+  // 头和错误正文立刻写回（不等请求体）；请求体继续读，读完再结束连接。
+  // 不能在 res.end() 后直接关掉还有未读数据的 socket：Windows 会发 RST，回包可能在客户端被丢掉，
+  // Beer 只能看到 ECONNRESET，测的就不是「透传家里的 503」了。
   const home = await listen(t, (req, res) => {
-    res.writeHead(503, { 'content-type': 'application/json', connection: 'close' })
-    res.end(JSON.stringify({ detail: '录音原件路径不可用', error_code: 'ORIGINALS_UNAVAILABLE' }))
+    req.resume()
+    res.writeHead(503, { 'content-type': 'application/json' })
+    res.write(JSON.stringify({ detail: '录音原件路径不可用', error_code: 'ORIGINALS_UNAVAILABLE' }))
+    req.on('end', () => res.end())
   })
   const beer = await startBeer(t, { config: { homeApiBase: home.url }, secrets: { 'home-api-key': HOME_KEY } })
   const dir = await makeTempDir(t, 'beer-big-')

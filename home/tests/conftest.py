@@ -8,15 +8,15 @@ from fastapi.testclient import TestClient
 from home_service.app import create_app
 from home_service.config import Settings
 
-from .fake_asr import TOKEN, FakeASR
+from .fake_beebox import TOKEN, FakeBeeBox
 
 KEY = "home-test-key"
 AUTH = {"Authorization": f"Bearer {KEY}"}
 
 
 @pytest.fixture
-def fake_asr():
-    return FakeASR()
+def fake_beebox():
+    return FakeBeeBox()
 
 
 @pytest.fixture
@@ -27,19 +27,20 @@ def settings(tmp_path):
         access_key=KEY,
         originals_dir=originals,
         db_path=tmp_path / "home.sqlite3",
-        asr_base_url="http://windows-asr",
-        asr_token=TOKEN,
+        beebox_base_url="http://windows-beebox",
+        beebox_token=TOKEN,
         poll_interval=0.0,
+        health_interval=0.0,
     )
 
 
 @pytest.fixture
-def start(settings, fake_asr):
+def start(settings, fake_beebox):
     """返回一个上下文管理器：启动家里服务，yield TestClient。可重复调用模拟重启。"""
 
     @contextmanager
     def _start(transport: httpx.AsyncBaseTransport | None = None):
-        app = create_app(settings, asr_transport=transport or httpx.ASGITransport(app=fake_asr.app))
+        app = create_app(settings, beebox_transport=transport or httpx.ASGITransport(app=fake_beebox.app))
         with TestClient(app) as client:
             yield client
 

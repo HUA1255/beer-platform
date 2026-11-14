@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beer 首页 · 第三稿</title>
+<style>
+:root{--bg:#f3efe8;--paper:#fbf8f3;--line:#e6dfd4;--ink:#2b2621;--ink2:#6f665c;--ink3:#a39a8f;--accent:#d9694a;--accent-soft:#fbe7df;--accent-ink:#b4482b;--bad:#c0463b;--bad-soft:#f8e1de;--warn:#b7791f;--warn-soft:#fbf0d9;--ok:#4f7a4a;--ok-soft:#e6efe3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",sans-serif}
+.switch{position:sticky;top:0;z-index:9;display:flex;gap:4px;align-items:center;padding:8px 14px;background:#2b2621;color:#fff;font-size:13px;flex-wrap:wrap}
+.switch a{color:#d8d0c5;padding:2px 10px;border-radius:6px;cursor:pointer}
+.switch a.on{background:var(--accent);color:#fff}
+.switch span{margin-left:auto;color:#a39a8f;font-size:12px}
+.frame{display:flex;min-height:calc(100vh - 38px)}
+.biz{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.top{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
+.top b{font-size:15px}
+.search{width:220px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px 10px;color:var(--ink3);font-size:13px}
+.top .right{margin-left:auto;font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:1px;padding:6px 12px 0;border-bottom:1px solid var(--line);overflow:hidden}
+.tab{padding:6px 11px;color:var(--ink2);border:1px solid transparent;border-radius:8px 8px 0 0;white-space:nowrap}
+.tab.on{background:#fff;border-color:var(--line);border-bottom-color:#fff;margin-bottom:-1px;color:var(--ink);font-weight:600}
+.content{flex:1;padding:14px 16px}
+/* 右侧对话栏：收起 / 展开 */
+.chat{width:34px;border-left:1px solid var(--line);background:var(--paper);display:flex;justify-content:center;padding-top:12px;color:var(--ink3);font-size:12px;writing-mode:vertical-rl;flex:none}
+body.narrow .chat{width:400px;writing-mode:horizontal-tb;flex-direction:column;justify-content:flex-start;padding:14px;gap:10px;background:#fff}
+.chat .open{display:none}
+body.narrow .chat .open{display:flex;flex-direction:column;gap:10px}
+body.narrow .chat .closed{display:none}
+.bubble{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--ink2);line-height:1.6}
+.bubble.me{align-self:flex-end;background:var(--accent-soft);border-color:#f3cfc1;color:var(--ink)}
+
+/* 头部 + 周条 */
+.head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.head h1{font-size:20px;margin:0}
+.head .sum{color:var(--ink2)}
+.head .sum b{color:var(--bad)}
+.head .week{margin-left:auto;font-size:12px;color:var(--ink2)}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:12px}
+.d{display:flex;align-items:center;gap:6px;justify-content:center;border:1px solid var(--line);border-radius:9px;background:#fff;padding:3px 0;font-size:12px;color:var(--ink2);cursor:pointer}
+.d b{font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.d.past{background:transparent;color:var(--ink3)}
+.d.past b{color:var(--ink3)}
+.d.today{background:var(--accent);border-color:var(--accent);color:#fff}
+.d.today b{color:#fff}
+.d.late b{color:var(--bad)}
+.dots{display:flex;gap:2px}
+.dots i{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.dots i.y{background:var(--warn)}
+.d.today .dots i{background:#fff}
+
+/* 主网格：宽屏两栏，窄屏单栏并调整顺序 */
+.grid{display:grid;gap:12px;grid-template-columns:minmax(0,1.65fr) minmax(270px,1fr);
+  grid-template-areas:"sched found" "sched wait" "sched topic" "sched writing" "sched rec" "sched .";
+  grid-template-rows:auto auto auto auto auto 1fr;align-items:start}
+body.narrow .grid{grid-template-columns:minmax(0,1fr);grid-template-rows:none;
+  grid-template-areas:"found" "wait" "sched" "topic" "writing" "rec"}
+.a-sched{grid-area:sched}.a-found{grid-area:found}.a-wait{grid-area:wait}.a-topic{grid-area:topic}.a-writing{grid-area:writing}.a-rec{grid-area:rec}
+
+.card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.row{display:flex;gap:8px;align-items:center;min-width:0;flex-wrap:wrap}
+.row>b{font-size:14px}
+.muted{color:var(--ink3);font-size:12px}
+.chip{display:inline-block;padding:0 7px;border-radius:999px;background:var(--bg);color:var(--ink2);font-size:12px;white-space:nowrap}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 10px;font:inherit;font-size:12px;color:var(--ink);cursor:pointer;white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{border-color:transparent;color:var(--ink2);background:transparent}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;margin-left:auto}
+.seg span{padding:1px 9px;font-size:12px;color:var(--ink2)}
+.seg span.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.add{display:flex;gap:6px}
+.add input{flex:1;min-width:0;border:1px dashed var(--line);border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;background:var(--paper);color:var(--ink)}
+.gt{font-size:12px;color:var(--ink2);font-weight:600;display:flex;gap:6px;align-items:center;padding:4px 0 0;flex-wrap:wrap}
+.gt.bad{color:var(--bad)}
+.item{display:flex;gap:9px;align-items:flex-start;padding:7px 8px;border-radius:9px}
+.item:hover{background:var(--paper)}
+.box{flex:none;width:16px;height:16px;border:1.5px solid var(--ink3);border-radius:4px;margin-top:3px}
+.ev{flex:none;width:16px;height:16px;margin-top:3px;display:grid;place-items:center}
+.ev::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.item.over{opacity:.55}
+.item.over .ev::before{background:var(--ink3)}
+.item.done .box{background:var(--ok);border-color:var(--ok)}
+.item.done .t{text-decoration:line-through;color:var(--ink3)}
+.when{flex:none;width:80px;font-size:12px;color:var(--ink2);padding-top:2px;font-variant-numeric:tabular-nums}
+.when.bad{color:var(--bad);font-weight:600}
+.when.plan{color:var(--accent-ink)}
+.when.est{color:var(--ink3)}
+.body{flex:1;min-width:0}
+.t{font-weight:600}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px;align-items:center}
+.ico{font-size:12px;color:var(--ink2)}
+.drag{font-size:12px;color:var(--ink2);background:var(--bg);border-radius:5px;padding:0 6px}
+.prog{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--ink2)}
+.prog i{display:inline-block;width:46px;height:4px;border-radius:2px;background:var(--bg);overflow:hidden;position:relative}
+.prog i::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--p);background:var(--accent)}
+.nudge{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink2);background:var(--paper);border:1px dashed var(--line);border-radius:9px;padding:5px 10px}
+.nudge .btn{margin-left:auto}
+.foldline{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink3);padding:2px 8px}
+.nodate{border-top:1px dashed var(--line);margin-top:4px;padding-top:4px}
+.steps{display:flex;flex-direction:column;gap:1px;margin:3px 0 1px}
+.step{display:flex;gap:7px;align-items:center;font-size:13px;color:var(--ink2)}
+.sbox{width:12px;height:12px;border:1.5px solid var(--ink3);border-radius:3px;flex:none}
+.sest{font-size:11px;color:var(--ink3)}
+.btn.plan{flex:none;align-self:center}
+
+/* 识别到日程 */
+.found{border-color:#f1c7b6;background:linear-gradient(180deg,#fff7f3,#fff);box-shadow:0 6px 18px -10px rgba(217,105,74,.45)}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.fitem{border:1px solid var(--line);border-radius:10px;background:#fff;padding:9px 11px;display:flex;flex-direction:column;gap:5px}
+.kv{display:grid;grid-template-columns:40px 1fr;gap:1px 8px;font-size:12px;color:var(--ink2)}
+.kv span:nth-child(odd){color:var(--ink3)}
+.acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+/* 等你处理 */
+.todo2{display:flex;gap:10px;padding:8px 2px;border-top:1px solid var(--bg)}
+.todo2:first-of-type{border-top:0}
+.ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:13px;font-weight:700}
+.ic.pub{background:var(--warn-soft);color:var(--warn)}
+.ic.ok{background:var(--ok-soft);color:var(--ok)}
+.ic.cf{background:var(--bad-soft);color:var(--bad)}
+.todo2 .bd{flex:1;min-width:0}
+.todo2 .tt{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.todo2 .sub{font-size:12px;color:var(--ink2)}
+.todo2 .sub b{color:var(--bad);font-weight:600}
+.plats{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.plat{font-size:11px;border-radius:6px;padding:0 6px;border:1px solid var(--line);color:var(--ink2);background:var(--paper)}
+.plat.y{border-color:#cfe0c9;background:#eef5eb;color:var(--ok)}
+.plat.n{border-style:dashed;color:var(--ink3)}
+.todo2 .act{flex:none;align-self:center}
+/* 选题 / 正在写 / 录音 */
+.gen{display:flex;gap:8px;align-items:center;color:var(--ink2);font-size:13px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--accent-soft);border-top-color:var(--accent);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.art{display:flex;gap:8px;align-items:center;font-size:13px;padding:3px 0}
+.art b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.pg{flex:0 0 60px;height:4px;border-radius:2px;background:var(--bg);overflow:hidden}
+.pg i{display:block;height:100%;background:var(--accent)}
+.rec{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;white-space:nowrap;font-size:12px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;background:#fff;padding:7px 12px}
+.bar{flex:0 0 80px;height:5px;border-radius:3px;background:var(--bg);overflow:hidden}
+.bar i{display:block;height:100%;width:62%;background:var(--accent)}
+/* 空状态 */
+.empty{display:none}
+body.is-empty .full{display:none!important}
+body.is-empty .empty{display:flex}
+.empty-box{flex-direction:column;align-items:center;text-align:center;gap:8px;padding:26px 10px;color:var(--ink2)}
+.empty-box .tips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.empty-box .tips span{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:2px 12px;font-size:12px;color:var(--ink)}
+.note{margin-top:18px;padding:12px 14px;border:1px dashed var(--line);border-radius:10px;font-size:12px;line-height:1.75;color:var(--ink2);background:#fff}
+.note b{color:var(--ink)}
+.note ol{margin:4px 0 0;padding-left:20px}
+body.is-empty .dots{display:none}body.is-empty .d.late b{color:var(--ink3)}
+</style>
+</head>
+<body>
+<div class="switch">
+  <b style="margin-right:8px">首页第三稿</b>
+  <a data-m="wide">宽屏 · 对话栏收起</a>
+  <a data-m="narrow">对话栏展开（窄屏）</a>
+  <a data-m="empty">第一次用（空状态）</a>
+  <span>按 9 条修改建议改的</span>
+</div>
+<div class="frame">
+<div class="biz">
+  <div class="top"><b>Beer</b><span class="search">搜索 ⌘K</span><span class="right">库：~/Obsidian/写作 · 家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="tab on">首页</span><span class="tab">录音</span><span class="tab">素材</span><span class="tab">选题</span><span class="tab">文章</span><span class="tab">发布</span><span class="tab">规则</span><span class="tab">回收站</span></div>
+  <div class="content">
+    <div class="head">
+      <h1>11 月 12 日 周四</h1>
+      <span class="sum full">今天 4 件事 · <b>1 件逾期</b> · 3 件等你处理 · 2 件没排期</span>
+      <span class="sum empty">还没有日程</span>
+      <span class="week">本周产出：新素材 6 · 成稿 2 · 已发布 1</span>
+    </div>
+    <!-- 周条：替代小月历 -->
+    <div class="wk">
+      <div class="d past">一 <b>9</b></div>
+      <div class="d past">二 <b>10</b><span class="dots"><i></i></span></div>
+      <div class="d past late">三 <b>11</b><span class="dots"><i class="y"></i></span></div>
+      <div class="d today">四 <b>12</b><span class="dots full"><i></i><i></i></span></div>
+      <div class="d">五 <b>13</b><span class="dots"><i class="y"></i></span></div>
+      <div class="d">六 <b>14</b><span class="dots"><i></i></span></div>
+      <div class="d">日 <b>15</b><span class="dots"><i class="y"></i></span></div>
+    </div>
+
+    <div class="grid">
+      <!-- 日程与待办 -->
+      <div class="card a-sched">
+        <div class="row"><b>日程与待办</b><span class="chip full">10</span>
+          <div class="seg"><span class="on">按时间</span><span>全部</span><span>已完成</span></div></div>
+        <div class="add"><input placeholder="＋ 加一条：「周五前交稿」「每周一 10:00 选题会」「做一期讲解视频，约 6 小时」"><button class="btn">在对话里说</button></div>
+
+        <div class="empty empty-box">
+          <div style="font-size:28px">🗓</div>
+          <b style="color:var(--ink)">还没有日程</b>
+          <div>在上面直接写一句，或者在右侧对话里说。日程会存进库里的 <code>日程.md</code>，手机上的 Obsidian 也能看。</div>
+          <div class="tips"><span>周五前交专栏稿</span><span>每周日整理素材</span><span>📋 贴一封面试邮件</span></div>
+        </div>
+
+        <div class="full" style="display:contents">
+        <div class="gt bad">已逾期 · 1</div>
+        <div class="item">
+          <span class="box"></span><span class="when bad">昨天截止</span>
+          <div class="body"><div class="t">把《AI 写作工作流》改完第二稿</div>
+            <div class="meta"><span class="chip acc">文章 · 二稿</span><span class="prog" style="--p:70%"><i></i>70%</span><span class="ico">↗ 打开</span></div></div>
+        </div>
+
+        <div class="gt">今天 · 4</div>
+        <div class="item over">
+          <span class="ev"></span><span class="when">10:00–11:00</span>
+          <div class="body"><div class="t">选题会</div>
+            <div class="meta"><span class="ico">已结束 · ↻ 每周四</span></div></div>
+        </div>
+        <div class="item">
+          <span class="ev"></span><span class="when">14:00–15:00</span>
+          <div class="body"><div class="t">某公司一面（腾讯会议 123-456）</div>
+            <div class="meta"><span class="chip">面试</span><span class="ico">✉ 13:30 提醒</span><span class="ico">还有 38 分钟</span></div></div>
+        </div>
+        <div class="item">
+          <span class="box"></span><span class="when">今天截止</span>
+          <div class="body"><div class="t">回复编辑的修改意见</div>
+            <div class="meta"><span class="ico">来自对话</span></div></div>
+        </div>
+        <div class="item">
+          <span class="box"></span><span class="when plan">计划 11/10</span>
+          <div class="body"><div class="t">写讲解稿 <span class="muted" style="font-weight:400">· 做一期 Beer 讲解视频 1/3</span></div>
+            <div class="meta"><span class="chip">约 2 小时</span><span class="drag">拖了 2 天</span></div></div>
+        </div>
+        <div class="nudge">「今天」里有 1 件已经拖了 2 天以上<button class="btn">放回没排期</button><button class="btn ghost">改到明天</button></div>
+        <div class="foldline">✓ 已完成 1 件（看读者留言）· 展开</div>
+
+        <div class="gt">本周 · 3</div>
+        <div class="item">
+          <span class="box"></span><span class="when">周五截止</span>
+          <div class="body"><div class="t">交《效率工具》专栏稿</div>
+            <div class="meta"><span class="chip warn">还剩 1 天</span><span class="chip acc">文章 · 初稿</span><span class="prog" style="--p:40%"><i></i>40%</span></div></div>
+        </div>
+        <div class="item">
+          <span class="ev"></span><span class="when">周六 10:00</span>
+          <div class="body"><div class="t">某公司二面</div>
+            <div class="meta"><span class="chip">面试</span><span class="ico">✉ 9:30 提醒</span></div></div>
+        </div>
+        <div class="item">
+          <span class="box"></span><span class="when">周日截止</span>
+          <div class="body"><div class="t">整理本周素材，挑下周选题</div>
+            <div class="meta"><span class="ico">↻ 每周日</span></div></div>
+        </div>
+        <div class="foldline">以后 · 2 · 展开</div>
+
+        <div class="nodate">
+          <div class="gt">没排期 · 2 <span class="muted" style="font-weight:400">想做、但没定哪天 · 共约 7 小时</span></div>
+          <div class="item">
+            <span class="box"></span><span class="when est">约 6 小时</span>
+            <div class="body"><div class="t">做一期 Beer 讲解视频</div>
+              <div class="steps">
+                <div class="step"><span class="sbox"></span>写讲解稿<span class="sest">约 2 小时 · 计划 11/10</span></div>
+                <div class="step"><span class="sbox"></span>录制<span class="sest">约 1 小时</span></div>
+                <div class="step"><span class="sbox"></span>剪辑、配字幕<span class="sest">约 3 小时</span></div>
+              </div>
+              <div class="meta"><span class="ico">0 / 3 步</span></div></div>
+            <button class="btn plan">排到…</button>
+          </div>
+          <div class="item">
+            <span class="box"></span><span class="when est">约 1 小时</span>
+            <div class="body"><div class="t">给读者群做一次问卷</div><div class="meta"><span class="ico">3 天前加的</span></div></div>
+            <button class="btn plan">排到…</button>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- 识别到日程（只放对话里解析出来、还没确认的） -->
+      <div class="card found a-found full">
+        <div class="row"><span class="pulse"></span><b>识别到 1 个日程</b><span class="muted">对话里解析的，还没确认</span><span class="muted" style="margin-left:auto">✕</span></div>
+        <div class="fitem">
+          <div class="row"><b>某公司 · 终面</b><span class="chip">面试</span></div>
+          <div class="kv"><span>时间</span><span>11/20 周五 10:00 – 11:00</span><span>地点</span><span>线下 · 望京 SOHO T3 12 层</span><span>提醒</span><span>✉ 提前 30 分钟（9:30）</span></div>
+          <div class="acts"><button class="btn pri">加入日程</button><button class="btn">改一下</button><button class="btn ghost">忽略</button></div>
+        </div>
+      </div>
+
+      <!-- 等你处理 -->
+      <div class="card a-wait">
+        <div class="row"><b>等你处理</b><span class="chip bad full">3</span><span class="muted full" style="margin-left:auto">最久的已等 2 天</span></div>
+        <div class="empty muted">没有要你处理的事。</div>
+        <div class="full" style="display:contents">
+        <div class="todo2"><span class="ic pub">稿</span>
+          <div class="bd"><div class="tt">为什么我不再用番茄钟</div><div class="sub">成稿待确认 · 3,240 字 · <b>等了 2 天</b></div>
+            <div class="plats"><span class="plat y">公众号 ✓</span><span class="plat y">知乎 ✓</span><span class="plat n">小红书 未生成</span></div></div>
+          <button class="btn pri act">确认</button></div>
+        <div class="todo2"><span class="ic ok">发</span>
+          <div class="bd"><div class="tt">AI 时代还要不要练字</div><div class="sub">已确认，还没发出 · 昨天 21:40 确认</div>
+            <div class="plats"><span class="plat">公众号 · 待发</span><span class="plat">小红书 · 待发</span></div></div>
+          <button class="btn act">去发布</button></div>
+        <div class="todo2"><span class="ic cf">冲</span>
+          <div class="bd"><div class="tt">文章/效率工具专栏.md</div><div class="sub">编辑冲突 · Obsidian 和 Beer 各改了一份 · 10 分钟前</div></div>
+          <button class="btn act">打开</button></div>
+        </div>
+      </div>
+
+      <!-- 今天的选题：先出页面，简报后补 -->
+      <div class="card a-topic">
+        <div class="row"><b>今天的选题</b><span class="muted" style="margin-left:auto">去选题页 →</span></div>
+        <div class="gen"><span class="spin"></span>正在生成今天的选题简报…其他内容不用等它</div>
+      </div>
+
+      <!-- 正在写：只放没挂待办的文章 -->
+      <div class="card a-writing full">
+        <div class="row"><b>正在写</b><span class="chip">1</span><span class="muted" style="margin-left:auto">去文章页 →</span></div>
+        <div class="art"><span class="chip">选题</span><b>读书会笔记</b><span class="pg"><i style="width:15%"></i></span></div>
+        <div class="muted">另有 2 篇已挂在左边的待办上</div>
+      </div>
+
+      <div class="rec a-rec full"><b style="color:var(--ink)">录音</b><span>读书会-1110.m4a · 转写中</span><span class="bar"><i></i></span><span>62%</span><span style="margin-left:auto;color:var(--accent-ink)">去录音页 →</span></div>
+    </div>
+
+    <div class="note">
+      <b>这一稿改了什么</b>（对应上一轮的 9 条）
+      <ol>
+        <li><b>窄屏顺序</b>：切到「对话栏展开」看。单栏时顺序变成 识别到日程 → 等你处理 → 日程与待办 → 选题 → 正在写 → 录音，要动手的事在第一屏。</li>
+        <li><b>先出页面</b>：「今天的选题」卡片里转圈，其他内容不等简报生成。</li>
+        <li><b>事件和待办分开</b>：有时刻的事（选题会、面试）左边是圆点不是勾选框，过了结束时间自动变灰、写「已结束」，不算逾期；快到时写「还有 38 分钟」。只有待办要勾。</li>
+        <li><b>拖延提醒</b>：计划日过了写「拖了 2 天」（灰色，不标红），今天分组里出现一行提示，可以一键放回没排期或改到明天。</li>
+        <li><b>等了几天</b>：数据从 frontmatter 里新记的「状态时间」来（看不出来，但「昨天 21:40 确认」这种精确时间就是它给的）。</li>
+        <li>（同时改 <code>日程.md</code> 时按行合并，界面上看不出来）</li>
+        <li><b>一篇文章只出现在一处</b>：挂了待办的文章，进度条显示在待办上（「文章 · 二稿 70%」）；「正在写」只放没挂待办的，并写明「另有 2 篇已挂在待办上」；成稿后只在「等你处理」。</li>
+        <li><b>右侧变短</b>：小月历换成日期下面的一行周条（有事的日子有点，逾期的日子红字，点一下筛选那天）；「等你处理」挪到识别卡片下面。已完成的事折成一行。</li>
+        <li><b>冲突按钮</b>改成「打开」。</li>
+      </ol>
+      另外：切到「第一次用」看空状态；识别卡片在第一版只放「对话里解析出来、还没确认」的结果。
+    </div>
+  </div>
+</div>
+<div class="chat">
+  <div class="closed">AI 对话（已收起）</div>
+  <div class="open">
+    <b style="color:var(--ink);font-size:13px">AI 对话</b>
+    <div class="bubble me">（贴了一封终面邀请邮件）</div>
+    <div class="bubble">识别到 1 个日程：11 月 20 日（周五）10:00–11:00 某公司终面，线下。提前 30 分钟发邮件提醒。加入日程吗？</div>
+  </div>
+</div>
+</div>
+<script>
+function set(m){if(['wide','narrow','empty'].indexOf(m)<0)m='wide';
+document.body.className=m==='wide'?'':(m==='empty'?'is-empty':m);
+document.querySelectorAll('.switch a').forEach(function(a){a.classList.toggle('on',a.dataset.m===m)});
+history.replaceState(null,'','#'+m)}
+document.querySelectorAll('.switch a').forEach(function(a){a.onclick=function(){set(a.dataset.m)}});
+set(location.hash.slice(1));
+</script>
+</body>
+</html>

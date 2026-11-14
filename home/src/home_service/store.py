@@ -17,11 +17,16 @@ _COLUMNS = {
     "created_at": "TEXT NOT NULL",
     "updated_at": "TEXT NOT NULL",
     "steps": "TEXT NOT NULL",
+    # asr_* 列名沿用旧库；切到 BeeBox 后存的是 /v1 任务的 id、公开状态和 stage
     "asr_task_id": "TEXT",
     "asr_status": "TEXT",
+    "asr_stage": "TEXT",
     "progress": "REAL",
     "error_code": "TEXT",
     "error": "TEXT",
+    "retryable": "INTEGER",      # 最近一次失败能否重试（1 / 0；没失败为 NULL）
+    "source_url": "TEXT",        # 视频链接任务的原链接；录音为 NULL
+    "source_info": "TEXT",       # BeeBox 结果里的 source（JSON）：文字来源、标题、作者、时长、原链接
     "transcript_md": "TEXT",
     "transcript_srt": "TEXT",
     "summary": "TEXT",
@@ -42,10 +47,11 @@ class Store:
         self._lock = threading.Lock()
         cols = ", ".join(f"{k} {v}" for k, v in _COLUMNS.items())
         self._db.execute(f"CREATE TABLE IF NOT EXISTS recordings ({cols})")
+        self._db.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
         self._migrate()
 
     def _migrate(self) -> None:
-        """老库补新列（#20 的 summary_type / mail_error），不丢已有录音。"""
+        """老库补新列（#20 的 summary_type / mail_error、#37 的 BeeBox 字段），不丢已有录音。"""
         existing = {row["name"] for row in self._db.execute("PRAGMA table_info(recordings)")}
         for name, decl in _COLUMNS.items():
             if name not in existing:
@@ -54,16 +60,26 @@ class Store:
     def close(self) -> None:
         self._db.close()
 
-    def create(self, rec_id: str, filename: str, original_path: Path) -> dict:
+    def create(self, rec_id: str, filename: str, original_path: Path | str, source_url: str | None = None) -> dict:
         steps = {k: "pending" for k in STEP_KEYS} | {"upload": "done"}
         now = _now()
         with self._lock:
             self._db.execute(
-                "INSERT INTO recordings (id, filename, original_path, created_at, updated_at, steps)"
-                " VALUES (?, ?, ?, ?, ?, ?)",
-                (rec_id, filename, str(original_path), now, now, json.dumps(steps)),
+                "INSERT INTO recordings (id, filename, original_path, created_at, updated_at, steps, source_url)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (rec_id, filename, str(original_path), now, now, json.dumps(steps), source_url),
             )
         return self.get(rec_id)
+
+    def get_meta(self, key: str) -> str | None:
+        with self._lock:
+            row = self._db.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+        return row["value"] if row else None
+
+    def set_meta(self, key: str, value: str) -> None:
+        with self._lock:
+            self._db.execute("INSERT INTO meta (key, value) VALUES (?, ?)"
+                             " ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, value))
 
     def get(self, rec_id: str) -> dict | None:
         with self._lock:

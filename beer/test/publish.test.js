@@ -57,8 +57,13 @@ function articleFile(title, status, body = `# ${title}\n\n第一行\n第二行\n
 ${body}`
 }
 
-/** 固定「现在」为本地时间 2026-11-06 18:30，发布记录按这个时间写。 */
+/** 固定「现在」为本地时间 2026-11-06 18:30，发布记录和 状态时间 按这个时间写。 */
 const fixedNow = () => new Date(2026, 10, 6, 18, 30, 0)
+
+/** 改状态后的主稿：状态行和 状态时间 一起更新（没有 状态时间 时插在状态行后面）。 */
+function withStatus(content, status) {
+  return content.replace(/^状态: .*$/m, `状态: ${status}\n状态时间: ${fixedNow().toISOString()}`)
+}
 
 const vaultFiles = async beer => (await listFiles(beer.vault)).map(p => p.replaceAll('\\', '/'))
 
@@ -155,7 +160,7 @@ test('发布列表：只列成稿和已确认，主稿与平台版本逐行对�
   ])
 })
 
-test('确认发布：成稿 → 已确认 → 已发布，先传图片再替换正文里的地址，写发布记录，主稿只改状态行', async t => {
+test('确认发布：成稿 → 已确认 → 已发布，先传图片再替换正文里的地址，写发布记录，主稿只改状态和状态时间两行', async t => {
   const rin = await startFakeRin(t)
   const beer = await newBeer(t, rin)
 
@@ -171,8 +176,8 @@ test('确认发布：成稿 → 已确认 → 已发布，先传图片再替换�
     ['封面.png', 'https://rin.test/r2/封面.png'],
   ].sort())
 
-  // 主稿除状态行外逐字节不变。
-  assert.equal(await readFile(join(beer.vault, INDEX), 'utf8'), MAIN.replace('状态: 成稿', '状态: 已发布'))
+  // 主稿除状态和状态时间两行外逐字节不变。
+  assert.equal(await readFile(join(beer.vault, INDEX), 'utf8'), withStatus(MAIN, '已发布'))
   // 发布记录一行，时间是本地时间。
   assert.equal(await readFile(join(beer.vault, RECORD), 'utf8'), '- 2026-11-06 18:30 Rin 博客 feed-123\n')
 
@@ -215,7 +220,7 @@ test('确认发布：成稿 → 已确认 → 已发布，先传图片再替换�
 })
 
 test('发布失败：Rin 一直 401、连不上、坏回包、上传失败、没有账号密码、登录失败都报明确错误，状态停在已确认，不写发布记录', async t => {
-  const confirmedMain = MAIN.replace('状态: 成稿', '状态: 已确认')
+  const confirmedMain = withStatus(MAIN, '已确认')
   const cases = []
   const anywhere = await startFake(t, {})
 
@@ -297,7 +302,7 @@ test('重试发布：已确认的只重跑发布，成功后改已发布并写�
   assert.equal(retry.status, 200)
   assert.equal(retry.body.status, '已发布')
   assert.equal(retry.body.feedId, 'feed-retry')
-  assert.equal(await readFile(join(beer.vault, INDEX), 'utf8'), MAIN.replace('状态: 成稿', '状态: 已发布'))
+  assert.equal(await readFile(join(beer.vault, INDEX), 'utf8'), withStatus(MAIN, '已发布'))
   assert.equal(await readFile(join(beer.vault, RECORD), 'utf8'), '- 2026-11-06 18:30 Rin 博客 feed-retry\n')
   assert.equal(feedRequests(rin).length, 2)
 
@@ -532,4 +537,82 @@ test('设置弹层改了 Rin 密码：丢掉内存里的令牌，下一次发布
     { username: 'admin', password: 'pw' },
     { username: 'admin', password: 'pw-new' },
   ])
+})
+
+test('确认发布：Obsidian 的 ![[图片]] 嵌入在库里按文件名找到、上传，换成标准 Markdown 图片', async t => {
+  const rin = await startFakeRin(t)
+  const main = `---
+标题: 嵌入测试
+状态: 成稿
+---
+
+# 嵌入测试
+
+![[Pasted image 20261114200959.png]]
+
+带宽度 ![[images/封面.png|300]] 和说明 ![[sub/图 二.jpg|架构图]]
+
+笔记嵌入不动：![[另一篇笔记]]
+`
+  const beer = await startBeer(t, {
+    vault: {
+      [INDEX]: main,
+      [ARTICLE + '/images/封面.png']: 'PNG-封面',
+      // Obsidian 粘贴默认存在库根（或附件文件夹），不在条目 images/ 里
+      'Pasted image 20261114200959.png': 'PNG-粘贴',
+      [ARTICLE + '/sub/图 二.jpg']: 'JPG-二',
+    },
+    config: { rinApiBase: rin.url },
+    secrets: RIN_CREDENTIALS,
+    now: fixedNow,
+  })
+
+  const res = await beer.api('POST', '/publish/confirm', { path: INDEX })
+
+  assert.equal(res.status, 200, JSON.stringify(res.body))
+  // images/ 里的封面只传一次；嵌入的两张各传一次，key 里的空格换成 -
+  const raws = storageRequests(rin).map(r => r.raw.toString('utf8'))
+  assert.equal(raws.length, 3)
+  assert.ok(raws.some(r => r.includes('PNG-粘贴') && /name="key"\r\n\r\nPasted-image-20261114200959\.png\r\n/.test(r)))
+  assert.ok(raws.some(r => r.includes('JPG-二') && /name="key"\r\n\r\n图-二\.jpg\r\n/.test(r)))
+  assert.deepEqual(feedRequests(rin)[0].body.content, [
+    '# 嵌入测试',
+    '',
+    '![](https://rin.test/r2/Pasted-image-20261114200959.png)',
+    '',
+    '带宽度 ![](https://rin.test/r2/封面.png) 和说明 ![架构图](https://rin.test/r2/图-二.jpg)',
+    '',
+    '笔记嵌入不动：![[另一篇笔记]]',
+    '',
+  ].join('\n'))
+  // 主稿正文不动
+  assert.equal(await readFile(join(beer.vault, INDEX), 'utf8'), withStatus(main, '已发布'))
+})
+
+test('确认发布：![[图片]] 在库里找不到就不发布，报出缺哪张图，状态停在已确认', async t => {
+  const rin = await startFakeRin(t)
+  const main = `---
+标题: 缺图
+状态: 成稿
+---
+
+# 缺图
+
+![[不存在.png]]
+`
+  const beer = await startBeer(t, {
+    vault: { [INDEX]: main },
+    config: { rinApiBase: rin.url },
+    secrets: RIN_CREDENTIALS,
+    now: fixedNow,
+  })
+
+  const res = await beer.api('POST', '/publish/confirm', { path: INDEX })
+
+  assert.equal(res.status, 422)
+  assert.equal(res.body.error.code, 'image_missing')
+  assert.match(res.body.error.message, /不存在\.png/)
+  assert.equal(feedRequests(rin).length, 0)
+  assert.equal(storageRequests(rin).length, 0)
+  assert.equal(await readFile(join(beer.vault, INDEX), 'utf8'), withStatus(main, '已确认'))
 })

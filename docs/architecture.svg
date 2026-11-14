@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="650" viewBox="0 0 680 650" role="img">
 <title>Beer Platform 架构（第 30 版方案，第一版从简，2026-11-09）</title>
-<desc>第一版从简。MacBook 上有 DSH Desktop（AI 对话和工作台 Beer；Beer 直接读写 Obsidian 库、生成选题简报和平台版本，并负责发布到 Rin 博客和内容平台）和 Obsidian（写作和内容库）。内容库只放在 MacBook 上，不同步，备份用时间机器。Beer 经 Tailscale 调用 Mac mini 的 HTTP API：上传录音、提交视频链接、提交转录、取回结果写进素材文件夹，并把这些操作注册成 AI 工具。Cloudflare 提醒服务放到第二版，届时以 HTTP API 提供。Mac mini 运行一个 launchd 托管的 Python 服务，负责上传和转录调度，通过 opencode go 生成摘要、通过邮箱发通知，经千兆局域网调用常开的 Windows 转录服务（B 站、YouTube 视频链接也由它先取字幕、没有再下载音轨转写），录音原件经局域网存到 NAS 上可配置的路径。NAS 只存文件，不接入 Tailscale，外出看 NAS 上的文件用极空间 App。</desc>
+<desc>第一版从简。MacBook 上有 DSH Desktop（AI 对话和工作台 Beer；Beer 直接读写 Obsidian 库、生成选题简报和平台版本，并负责发布到 Rin 博客和内容平台）和 Obsidian（写作和内容库）。内容库只放在 MacBook 上，不同步，备份用时间机器。Beer 经 Tailscale 调用 Mac mini 的 HTTP API：上传录音、提交视频链接、提交转录、取回结果写进素材文件夹，并把这些操作注册成 AI 工具。Beer 直接经互联网调用 Cloudflare 上的提醒服务（Worker + D1 + 每分钟定时检查，HTTP API），到点用 Cloudflare 自带发信给自己发邮件，不经过家里。Mac mini 运行一个 launchd 托管的 Python 服务，负责上传和转录调度，通过 opencode go 生成摘要、通过邮箱发通知，经千兆局域网调用常开的 Windows 转录服务（B 站、YouTube 视频链接也由它先取字幕、没有再下载音轨转写），录音原件经局域网存到 NAS 上可配置的路径。NAS 只存文件，不接入 Tailscale，外出看 NAS 上的文件用极空间 App。</desc>
 <style>
   text { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif; dominant-baseline: central; }
   .th { font-size: 14px; font-weight: 500; }
@@ -25,13 +25,13 @@
 <g class="done"><rect x="60" y="96" width="155" height="66" rx="8"/><text class="th mid" x="137" y="118">DSH Desktop</text><text class="ts mid" x="137" y="141">AI 对话 · Beer · 发布 · 简报</text></g>
 <g class="done"><rect x="230" y="96" width="150" height="66" rx="8"/><text class="th mid" x="305" y="118">Obsidian</text><text class="ts mid" x="305" y="141">写作 · 内容库（只在本机）</text></g>
 
-<g class="host"><rect x="480" y="40" width="160" height="160" rx="16"/><text class="th" x="500" y="64">Cloudflare · 第二版</text></g>
-<g class="done"><rect x="495" y="96" width="130" height="66" rx="8"/><text class="th mid" x="560" y="118">提醒服务</text><text class="ts mid" x="560" y="141">Workers</text></g>
+<g class="host"><rect x="480" y="40" width="160" height="160" rx="16"/><text class="th" x="500" y="64">Cloudflare</text></g>
+<g class="done"><rect x="495" y="96" width="130" height="66" rx="8"/><text class="th mid" x="560" y="118">提醒服务</text><text class="ts mid" x="560" y="141">Worker · D1 · 定时</text></g>
 
-<line x1="402" y1="182" x2="476" y2="182" class="arr tbd" marker-end="url(#arrow)"/>
+<line x1="402" y1="182" x2="476" y2="182" class="arr" marker-end="url(#arrow)"/>
 <path d="M400 196 L470 262" class="arr" marker-end="url(#arrow)"/>
 <text class="ts label" x="424" y="256">发布</text>
-<text class="ts label mid" x="440" y="166">第二版</text>
+<text class="ts label mid" x="440" y="166">建提醒</text>
 <line x1="560" y1="202" x2="560" y2="256" class="arr" marker-end="url(#arrow)"/>
 <text class="ts label" x="570" y="229">到点发邮件</text>
 
@@ -52,7 +52,7 @@
 <text class="ts label mid" x="252" y="455">千兆局域网</text>
 
 <g class="host"><rect x="40" y="480" width="250" height="120" rx="16"/><text class="th" x="60" y="504">Windows 11 · 常开</text></g>
-<g class="done"><rect x="60" y="524" width="210" height="56" rx="8"/><text class="th mid" x="165" y="542">voice-transcription</text><text class="ts mid" x="165" y="563">GPU 转录 · 视频链接（字幕优先）</text></g>
+<g class="done"><rect x="60" y="524" width="210" height="56" rx="8"/><text class="th mid" x="165" y="542">BeeBox</text><text class="ts mid" x="165" y="563">GPU 转录 · 视频链接（字幕优先）</text></g>
 <g class="host"><rect x="310" y="480" width="330" height="120" rx="16"/><text class="th" x="330" y="504">NAS（极空间）· 常开</text></g>
 <g class="done"><rect x="330" y="524" width="290" height="56" rx="8"/><text class="th mid" x="475" y="542">录音原件（路径可配置）</text><text class="ts mid" x="475" y="563">只存文件 · 只在局域网 · 外出用极空间 App</text></g>
 

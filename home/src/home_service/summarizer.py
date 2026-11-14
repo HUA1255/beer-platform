@@ -1,6 +1,7 @@
-"""按录音类型生成摘要（#20）。
+"""按录音类型生成摘要（#20），视频链接任务用「视频」类型（#34）。
 
 流程：模型判断类型（只输出 JSON）→ 按类型生成 Markdown 摘要 → 发通知邮件。
+视频链接任务跳过判断，直接按「视频」整理；重新总结时也可以手动选「视频」。
 - 类型不认识（或模型没按 JSON 回）时按「会议」处理，并在摘要开头注明。
 - 发信失败不影响摘要：只在字段里留下 mail_error，摘要步骤仍算完成。
 - 模型错误（llm.py 的 MODEL_*）转成摘要步骤的 failed，可由 /retry 重做。
@@ -15,7 +16,8 @@ from .pipeline import StepFailed
 
 log = logging.getLogger(__name__)
 
-TYPES = ("会议", "口述灵感", "课程讲座")
+TYPES = ("会议", "口述灵感", "课程讲座", "视频")
+VIDEO_TYPE = "视频"  # 视频链接任务（#34）直接用这个类型，不经模型判断
 FALLBACK_TYPE = "会议"
 FALLBACK_NOTE = "> 类型未能识别，已按「会议」整理。\n\n"
 
@@ -46,6 +48,13 @@ SUMMARY_PROMPTS = {
 按讲课顺序列出知识点，用多级列表表示层次。
 ## 值得记下的观点
 3-8 条，保留讲者的表述和例子，不要扩写成教程。""",
+    "视频": """你在整理一个网络视频的文字稿（来自字幕或语音识别）。请用 Markdown 输出三节：
+## 一句话概括
+这个视频讲了什么。
+## 要点
+3-8 条，按视频顺序，保留作者的表述和例子，不要扩写。
+## 可以怎么写
+把视频内容整理成写作素材：可能的切入角度、可以用的例子和观点，不要替我下结论。""",
 }
 
 
@@ -71,6 +80,22 @@ def parse_type(text: str) -> str | None:
     return None
 
 
+def _source(rec: dict) -> dict:
+    try:
+        return json.loads(rec.get("source_info") or "{}") or {}
+    except ValueError:
+        return {}
+
+
+def video_context(rec: dict) -> str:
+    """视频的标题和作者给模型做背景；录音没有这一段。"""
+    if not rec.get("source_url"):
+        return ""
+    src = _source(rec)
+    lines = [f"{label}：{src[key]}" for key, label in (("title", "视频标题"), ("author", "作者")) if src.get(key)]
+    return ("\n".join(lines) + "\n\n") if lines else ""
+
+
 class RecordingSummarizer:
     """Summarizer 扩展点的真实实现；create_app(summarizer=...) 可注入假的替换。"""
 
@@ -82,11 +107,13 @@ class RecordingSummarizer:
         transcript = rec.get("transcript_md") or ""
         try:
             fallback = False
-            if type_ is None:
-                summary_type, fallback = await self._detect(transcript)
-            else:
+            if type_ is not None:
                 summary_type = type_
-            summary = await self._write(summary_type, transcript)
+            elif rec.get("source_url"):
+                summary_type = VIDEO_TYPE
+            else:
+                summary_type, fallback = await self._detect(transcript)
+            summary = await self._write(summary_type, transcript, video_context(rec))
         except LLMError as e:
             raise StepFailed(e.code, e.message) from e
 
@@ -106,8 +133,8 @@ class RecordingSummarizer:
         found = parse_type(reply)
         return (found, False) if found else (FALLBACK_TYPE, True)
 
-    async def _write(self, summary_type: str, transcript: str) -> str:
-        prompt = SUMMARY_PROMPTS[summary_type] + "\n\n文字稿：\n" + transcript
+    async def _write(self, summary_type: str, transcript: str, context: str = "") -> str:
+        prompt = SUMMARY_PROMPTS[summary_type] + "\n\n" + context + "文字稿：\n" + transcript
         return await self.llm.complete([
             {"role": "system", "content": "你是中文录音整理助手，只输出 Markdown 摘要正文。"},
             {"role": "user", "content": prompt},
@@ -117,9 +144,16 @@ class RecordingSummarizer:
         if not self.mailer or not self.mailer.configured:
             log.info("没有配置 SMTP，跳过录音 %s 的通知邮件", rec.get("id"))
             return
-        name = rec.get("filename") or rec.get("id")
+        if rec.get("source_url"):
+            name = _source(rec).get("title") or rec["source_url"]
+            subject = f"视频已转写：{name}"
+            body = f"视频「{name}」已转写完成。\n\n链接：{rec['source_url']}\n\n类型：{summary_type}\n\n{summary}\n"
+        else:
+            name = rec.get("filename") or rec.get("id")
+            subject = f"录音已转写：{name}"
+            body = f"录音「{name}」已转写完成。\n\n类型：{summary_type}\n\n{summary}\n"
         try:
-            await self.mailer.send(f"录音已转写：{name}", f"录音「{name}」已转写完成。\n\n类型：{summary_type}\n\n{summary}\n")
+            await self.mailer.send(subject, body)
         except Exception as e:  # noqa: BLE001 - 发信失败不能让摘要变失败
             log.warning("录音 %s 的通知邮件发送失败：%s", rec.get("id"), e)
             fields["mail_error"] = getattr(e, "message", None) or f"发邮件失败：{e}"

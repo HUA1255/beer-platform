@@ -170,7 +170,7 @@ test('发布包校验：非法平台 400，没确认 409，没有平台版本 40
   )
 })
 
-test('发布记录：追加一行并保留已有记录，把已确认改成已发布，主稿除状态行外逐字节不变', async t => {
+test('发布记录：追加一行并保留已有记录，把已确认改成已发布，主稿除状态和状态时间外逐字节不变', async t => {
   const EXISTING = '- 2026-11-01 09:00 知乎 https://zhuanlan.zhihu.com/p/old\n'
   const external = fetchSpy()
   const beer = await startBeer(t, {
@@ -194,8 +194,11 @@ test('发布记录：追加一行并保留已有记录，把已确认改成已�
     record: RECORD,
     appended: true,
   })
-  // 主稿只有 `状态:` 这一行变了，正文和其他属性逐字节不动。
-  assert.equal(await readFile(join(beer.vault, INDEX), 'utf8'), MAIN.replace('状态: 已确认', '状态: 已发布'))
+  // 主稿只有 `状态:` / `状态时间:` 两行变了，正文和其他属性逐字节不动。
+  assert.equal(
+    await readFile(join(beer.vault, INDEX), 'utf8'),
+    MAIN.replace('状态: 已确认', `状态: 已发布\n状态时间: ${fixedNow().toISOString()}`),
+  )
   // 已有记录原样保留，新记录按本地时间追加在末尾。
   assert.equal(
     await readFile(join(beer.vault, RECORD), 'utf8'),

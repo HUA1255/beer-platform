@@ -57,8 +57,9 @@ test('宿主接线：卸载时注销路由', async t => {
 test('宿主接线：用 ctx.inject 把 AI 工具登记到可选的 tools 服务', async t => {
   const { injected } = await applyWithFakeHost(t)
 
-  // 素材导入（#12）和转录三件套（#22）各一次，都是可选的 tools 服务。
-  assert.deepEqual(injected.map(item => item.deps), [['tools'], ['tools']])
+  // 素材导入（#12）、转录三件套（#22）、邮件提醒三件套（#44）、日程五件套（#53）各一次，
+  // 都是可选的 tools 服务。
+  assert.deepEqual(injected.map(item => item.deps), [['tools'], ['tools'], ['tools'], ['tools']])
   assert.ok(injected.every(item => typeof item.callback === 'function'))
 })
 

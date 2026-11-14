@@ -1,0 +1,18 @@
+{
+  "name": "beer-reminder",
+  "private": true,
+  "description": "Beer Platform 的云端提醒服务：Cloudflare Worker + D1 + Cron，到点用 Cloudflare 自带发信给自己发邮件（#44）",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply beer-reminder --remote",
+    "tail": "wrangler tail"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "wrangler": "4.156.2"
+  }
+}

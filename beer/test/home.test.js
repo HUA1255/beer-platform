@@ -14,10 +14,23 @@ const CONFIRMED = '内容库/文章/2026-11-03-待确认/index.md'
 const OLD_DRAFT = '内容库/文章/2026-10-10-旧成稿/index.md'
 const PUBLISHED = '内容库/文章/2026-11-04-已发布/index.md'
 const DRAFT = '内容库/文章/2026-11-05-草稿/index.md'
+const TOPIC = '内容库/文章/2026-11-06-新选题/index.md'
 
 const note = (title, status, date, body = '') => `---
 标题: ${title}
 状态: ${status}
+日期: ${date}
+---
+
+# ${title}
+
+${body}`
+
+/** 带 状态时间 的文章开头（#48：改状态时写进 frontmatter）。 */
+const noteWithStatusTime = (title, status, date, statusTime, body = '') => `---
+标题: ${title}
+状态: ${status}
+状态时间: ${statusTime}
 日期: ${date}
 ---
 
@@ -62,6 +75,7 @@ const VAULT = {
   [OLD_DRAFT]: note('旧成稿', '成稿', '2026-10-10'),
   [PUBLISHED]: note('已发布', '已发布', '2026-11-04'),
   [DRAFT]: note('草稿', '草稿', '2026-11-05'),
+  [TOPIC]: note('新选题', '选题', '2026-11-06'),
   '内容库/素材/2026-11-02-周会/index.md': material('周会'),
   '内容库/素材/2026-11-01-周日素材/index.md': material('周日素材'),
   '内容库/素材/2026-10-05-旧素材/index.md': material('旧素材'),
@@ -83,7 +97,7 @@ async function emptyHome(t) {
   return startFake(t, { 'GET /recordings': () => ({ recordings: [] }) })
 }
 
-test('GET /home：汇总待确认发布、当天简报、本周产出和规则积累', async t => {
+test('GET /home：汇总待确认发布、正在写、当天简报、本周产出和规则积累', async t => {
   const home = await emptyHome(t)
   const beer = await startBeer(t, {
     vault: VAULT,
@@ -97,6 +111,7 @@ test('GET /home：汇总待确认发布、当天简报、本周产出和规则�
   await setMtime(beer, OLD_DRAFT, '2026-10-10T12:00:00')
   await setMtime(beer, PUBLISHED, '2026-11-04T12:00:00')
   await setMtime(beer, DRAFT, '2026-11-05T12:00:00')
+  await setMtime(beer, TOPIC, '2026-11-06T12:00:00')
   await setMtime(beer, '内容库/素材/随手笔记/index.md', '2026-11-02T12:00:00')
 
   const res = await beer.api('GET', '/home')
@@ -104,16 +119,160 @@ test('GET /home：汇总待确认发布、当天简报、本周产出和规则�
   assert.equal(res.status, 200)
   assert.equal(res.body.date, TODAY)
   assert.deepEqual(res.body.tasks.publishPending, [
-    { path: CONFIRMED, title: '待确认', status: '已确认' },
-    { path: MAIN, title: '本周成稿', status: '成稿' },
-    { path: OLD_DRAFT, title: '旧成稿', status: '成稿' },
+    {
+      path: CONFIRMED,
+      title: '待确认',
+      status: '已确认',
+      statusTime: new Date('2026-11-03T12:00:00').toISOString(),
+      statusTimeSource: 'mtime',
+      waitedDays: 3,
+      waitedLong: true,
+      words: 4,
+      platforms: [{ platform: '知乎', state: '未生成' }, { platform: '小红书', state: '未生成' }],
+      action: 'publish',
+    },
+    {
+      path: MAIN,
+      title: '本周成稿',
+      status: '成稿',
+      statusTime: new Date('2026-11-02T12:00:00').toISOString(),
+      statusTimeSource: 'mtime',
+      waitedDays: 4,
+      waitedLong: true,
+      words: 5,
+      platforms: [{ platform: '知乎', state: '未生成' }, { platform: '小红书', state: '未生成' }],
+      action: 'confirm',
+    },
+    {
+      path: OLD_DRAFT,
+      title: '旧成稿',
+      status: '成稿',
+      statusTime: new Date('2026-10-10T12:00:00').toISOString(),
+      statusTimeSource: 'mtime',
+      waitedDays: 27,
+      waitedLong: true,
+      words: 4,
+      platforms: [{ platform: '知乎', state: '未生成' }, { platform: '小红书', state: '未生成' }],
+      action: 'confirm',
+    },
   ])
-  assert.deepEqual(res.body.tasks.brief, { path: BRIEF_PATH, exists: true, generatedToday: true })
+  // 「正在写」只列选题和草稿，按最近改过的在前。
+  assert.deepEqual(res.body.tasks.writing, [
+    { path: TOPIC, title: '新选题', status: '选题', progress: 15 },
+    { path: DRAFT, title: '草稿', status: '草稿', progress: 50 },
+  ])
+  assert.deepEqual(res.body.tasks.brief, {
+    path: BRIEF_PATH, exists: true, generatedToday: true, title: '测试角度', angleCount: 1,
+  })
   assert.deepEqual(res.body.tasks.editConflicts, [])
   assert.deepEqual(res.body.recordings, { online: true, processing: [], failedCount: 0 })
   // 本周从周一 2026-11-02 起算：周日的素材不算；没有日期前缀的素材按修改时间算。
   assert.deepEqual(res.body.week, { since: '2026-11-02', materials: 2, drafts: 1, published: 1 })
   assert.deepEqual(res.body.rules, { enabled: true, hard: 2, soft: 1, pending: 0 })
+})
+
+test('GET /home：等你处理带状态时间、等了几天、字数和各平台版本状态', async t => {
+  const home = await emptyHome(t)
+  const FINAL = '内容库/文章/2026-11-01-成稿带平台/index.md'
+  const CONFIRMED = '内容库/文章/2026-11-05-已确认带平台/index.md'
+  const LEGACY = '内容库/文章/2026-10-01-旧成稿无状态时间/index.md'
+  const finalTime = new Date(2026, 10, 3, 9, 0, 0).toISOString()
+  const confirmedTime = new Date(2026, 10, 5, 21, 40, 0).toISOString()
+  const beer = await startBeer(t, {
+    vault: {
+      [FINAL]: noteWithStatusTime('成稿带平台', '成稿', '2026-11-01', finalTime, '一二三'),
+      [FINAL.replace('/index.md', '/知乎.md')]: '知乎版本',
+      [CONFIRMED]: noteWithStatusTime('已确认带平台', '已确认', '2026-11-05', confirmedTime, '正文'),
+      [CONFIRMED.replace('/index.md', '/知乎.md')]: '知乎版本',
+      [LEGACY]: note('旧成稿无状态时间', '成稿', '2026-10-01', '正文'),
+    },
+    config: { homeApiBase: home.url },
+    secrets: { 'home-api-key': 'home-key' },
+    now: () => new Date(2026, 10, 6, 10, 0, 0),
+  })
+  await setMtime(beer, FINAL, '2026-11-01T09:00:00')
+  await setMtime(beer, CONFIRMED, '2026-11-05T21:40:00')
+  await setMtime(beer, LEGACY, '2026-11-02T09:00:00')
+
+  const res = await beer.api('GET', '/home')
+  assert.equal(res.status, 200)
+  const byPath = Object.fromEntries(res.body.tasks.publishPending.map(item => [item.path, item]))
+
+  // 成稿：状态时间来自 frontmatter；按本机日历日算 3 天，超过 2 天标红；平台文件只生成了一部分。
+  assert.deepEqual(byPath[FINAL], {
+    path: FINAL,
+    title: '成稿带平台',
+    status: '成稿',
+    statusTime: finalTime,
+    statusTimeSource: 'frontmatter',
+    waitedDays: 3,
+    waitedLong: true,
+    words: 9, // 「#」+「成稿带平台」5 字 +「一二三」3 字
+    platforms: [{ platform: '知乎', state: '已生成' }, { platform: '小红书', state: '未生成' }],
+    action: 'confirm',
+  })
+
+  // 已确认：同样的平台文件显示「待发」；确认时间是状态时间，不算标红。
+  assert.deepEqual(byPath[CONFIRMED], {
+    path: CONFIRMED,
+    title: '已确认带平台',
+    status: '已确认',
+    statusTime: confirmedTime,
+    statusTimeSource: 'frontmatter',
+    waitedDays: 1,
+    waitedLong: false,
+    words: 9, // 「#」+「已确认带平台」6 字 +「正文」2 字
+    platforms: [{ platform: '知乎', state: '待发' }, { platform: '小红书', state: '未生成' }],
+    action: 'publish',
+  })
+
+  // 旧文章没有 状态时间：退回文件修改时间，并标明来源。
+  assert.deepEqual(byPath[LEGACY], {
+    path: LEGACY,
+    title: '旧成稿无状态时间',
+    status: '成稿',
+    statusTime: new Date('2026-11-02T09:00:00').toISOString(),
+    statusTimeSource: 'mtime',
+    waitedDays: 4,
+    waitedLong: true,
+    words: 11, // 「#」+「旧成稿无状态时间」8 字 +「正文」2 字
+    platforms: [{ platform: '知乎', state: '未生成' }, { platform: '小红书', state: '未生成' }],
+    action: 'confirm',
+  })
+})
+
+test('GET /home：改状态后按 状态时间 算等了几天，不用文件修改时间；超过 2 天标红', async t => {
+  const home = await emptyHome(t)
+  const path = '内容库/文章/2026-10-20-后来成稿/index.md'
+  let now = new Date(2026, 10, 6, 10, 0, 0)
+  const beer = await startBeer(t, {
+    vault: { [path]: `---\n标题: 后来成稿\n状态: 草稿\n日期: 2026-10-20\n---\n\n# 后来成稿\n\n正文。\n` },
+    config: { homeApiBase: home.url },
+    secrets: { 'home-api-key': 'home-key' },
+    now: () => now,
+  })
+  // 文件很久没动过（修改时间是 10 天前）；改状态后应该只看 状态时间。
+  await setMtime(beer, path, '2026-10-27T09:00:00')
+
+  assert.equal((await beer.api('POST', '/articles/status', { path, status: '成稿' })).status, 200)
+  const itemAt = async () => (await beer.api('GET', '/home')).body.tasks.publishPending[0]
+
+  const sameDay = await itemAt()
+  assert.equal(sameDay.statusTime, now.toISOString())
+  assert.equal(sameDay.statusTimeSource, 'frontmatter')
+  assert.equal(sameDay.waitedDays, 0)
+  assert.equal(sameDay.waitedLong, false)
+
+  now = new Date(2026, 10, 8, 10, 0, 0)
+  const twoDays = await itemAt()
+  assert.equal(twoDays.waitedDays, 2)
+  assert.equal(twoDays.waitedLong, false, '2 天还不算「超过 2 天」')
+
+  now = new Date(2026, 10, 9, 10, 0, 0)
+  const threeDays = await itemAt()
+  assert.equal(threeDays.waitedDays, 3)
+  assert.equal(threeDays.waitedLong, true, '第 3 天起标红')
+  assert.equal(threeDays.statusTime, new Date(2026, 10, 6, 10, 0, 0).toISOString(), '状态时间不随查看时间变化')
 })
 
 /** 家里返回的一条录音视图（字段和 home/README.md 一致）。 */
@@ -156,7 +315,7 @@ test('GET /home：录音只取处理中 / 失败摘要，并带家里的密钥�
   assert.equal(res.status, 200)
   assert.deepEqual(res.body.recordings, {
     online: true,
-    processing: [{ id: 'rec-1', filename: '周会.m4a', progress: 62, step: '转写' }],
+    processing: [{ id: 'rec-1', filename: '周会.m4a', title: '周会.m4a', kind: 'recording', progress: 62, step: '转写' }],
     failedCount: 1,
   })
   assert.equal(home.requests.length, 1)
@@ -275,7 +434,9 @@ test('POST /home/brief/regenerate：调模型生成当天简报，返回路径�
   assert.match(JSON.stringify(sent.messages), new RegExp(TODAY))
   // 首页随后看到今天的简报已经生成。
   const home = await beer.api('GET', '/home')
-  assert.deepEqual(home.body.tasks.brief, { path: BRIEF_PATH, exists: true, generatedToday: true })
+  assert.deepEqual(home.body.tasks.brief, {
+    path: BRIEF_PATH, exists: true, generatedToday: true, title: '首页要能一眼看完', angleCount: 2,
+  })
 })
 
 test('GET /home：待转正的规则计入规则积累', async t => {
@@ -325,7 +486,10 @@ test('GET /home：今天还没有选题简报时 exists 和 generatedToday 都�
   const res = await beer.api('GET', '/home')
 
   assert.equal(res.status, 200)
-  assert.deepEqual(res.body.tasks.brief, { path: BRIEF_PATH, exists: false, generatedToday: false })
+  assert.deepEqual(res.body.tasks.brief, {
+    path: BRIEF_PATH, exists: false, generatedToday: false, title: null, angleCount: 0,
+  })
+  assert.deepEqual(res.body.tasks.writing, [])
   assert.deepEqual(res.body.tasks.publishPending, [])
   assert.deepEqual(res.body.tasks.editConflicts, [])
   assert.deepEqual(res.body.week, { since: '2026-11-02', materials: 0, drafts: 0, published: 0 })
@@ -349,14 +513,18 @@ test('GET /home?ensure=1：今天没有简报时生成一次并写文件，同�
   const first = await beer.api('GET', '/home?ensure=1')
 
   assert.equal(first.status, 200)
-  assert.deepEqual(first.body.tasks.brief, { path: BRIEF_PATH, exists: true, generatedToday: true })
+  assert.deepEqual(first.body.tasks.brief, {
+    path: BRIEF_PATH, exists: true, generatedToday: true, title: '首页要自动出简报', angleCount: 1,
+  })
   assert.match(await readFile(join(beer.vault, BRIEF_PATH), 'utf8'), /首页要自动出简报/)
   assert.equal(model.requests.length, 1)
 
   const second = await beer.api('GET', '/home?ensure=1')
 
   assert.equal(second.status, 200)
-  assert.deepEqual(second.body.tasks.brief, { path: BRIEF_PATH, exists: true, generatedToday: true })
+  assert.deepEqual(second.body.tasks.brief, {
+    path: BRIEF_PATH, exists: true, generatedToday: true, title: '首页要自动出简报', angleCount: 1,
+  })
   assert.equal(model.requests.length, 1, '同一天文件已存在时不再调模型')
   // 首页其余部分照常返回。
   assert.deepEqual(second.body.tasks.publishPending, [])
@@ -382,10 +550,59 @@ test('GET /home?ensure=1：模型失败时首页仍 200，tasks.brief 带 error�
   assert.equal(res.body.tasks.brief.path, BRIEF_PATH)
   assert.equal(res.body.tasks.brief.exists, false)
   assert.equal(res.body.tasks.brief.generatedToday, false)
+  assert.equal(res.body.tasks.brief.title, null)
+  assert.equal(res.body.tasks.brief.angleCount, 0)
   assert.equal(typeof res.body.tasks.brief.error, 'string')
   assert.match(res.body.tasks.brief.error, /返回 500/)
   assert.deepEqual(await listFiles(beer.vault), [], '生成失败不能写简报文件')
   // 其他汇总照常可读。
   assert.deepEqual(res.body.tasks.publishPending, [])
   assert.equal(res.body.recordings.online, true)
+})
+
+test('GET /home：带上日程汇总（今天几件 / 几件逾期 / 本周还有几件到期），完整列表在 /schedule', async t => {
+  const beer = await startBeer(t, {
+    vault: {
+      '日程.md': [
+        '- [ ] 14:00–15:00 某公司一面 #面试 %%beer id=a1 src=对话%% 📅 2026-11-12',
+        '- [ ] 旧稿改完 %%beer id=late src=对话%% 📅 2026-11-11',
+        '- [ ] 交专栏稿 %%beer id=week src=快速添加%% 📅 2026-11-13',
+        '- [ ] 下周再说 %%beer id=later src=对话%% 📅 2026-11-20',
+      ].join('\n') + '\n',
+    },
+    config: { homeApiBase: await deadUrl(t) },
+    secrets: { 'home-api-key': 'home-key' },
+    now: () => new Date('2026-11-12T10:00:00'),
+  })
+
+  const res = await beer.api('GET', '/home')
+
+  assert.equal(res.status, 200)
+  assert.deepEqual(res.body.schedule, {
+    path: '日程.md',
+    exists: true,
+    summary: { today: 1, overdue: 1, dueThisWeek: 1, unscheduled: 0 },
+  })
+  // 日程栏的完整数据仍由 /schedule 提供，两边口径一致。
+  const list = await beer.api('GET', '/schedule')
+  assert.deepEqual(list.body.summary, res.body.schedule.summary)
+})
+
+test('GET /home：还没有 日程.md 时日程汇总是 0，不建文件', async t => {
+  const beer = await startBeer(t, {
+    vault: {},
+    config: { homeApiBase: await deadUrl(t) },
+    secrets: { 'home-api-key': 'home-key' },
+    now: () => new Date('2026-11-12T10:00:00'),
+  })
+
+  const res = await beer.api('GET', '/home')
+
+  assert.equal(res.status, 200)
+  assert.deepEqual(res.body.schedule, {
+    path: '日程.md',
+    exists: false,
+    summary: { today: 0, overdue: 0, dueThisWeek: 0, unscheduled: 0 },
+  })
+  assert.deepEqual(await listFiles(beer.vault), [])
 })

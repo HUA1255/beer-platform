@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beer 首页 · 风格对比</title>
+<style>
+/* ---------- 共用骨架（A 分组列表） ---------- */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 var(--font)}
+.switch{position:sticky;top:0;z-index:5;display:flex;gap:6px;align-items:center;padding:8px 14px;background:#1f1c19;color:#fff;font:13px/1.6 -apple-system,"PingFang SC",sans-serif;flex-wrap:wrap}
+.switch a{color:#cfc7bc;text-decoration:none;padding:2px 10px;border-radius:6px;cursor:pointer}
+.switch a.on{background:#fff;color:#1f1c19;font-weight:600}
+.switch span{margin-left:auto;color:#8f877c;font-size:12px}
+.frame{display:flex;min-height:calc(100vh - 38px)}
+.biz{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.top{display:flex;gap:8px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--paper)}
+.top .logo{font-weight:700;font-size:15px}
+.search{width:240px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--field);padding:4px 10px;color:var(--ink3);font-size:13px}
+.top .right{margin-left:auto;font-size:12px;color:var(--ink2)}
+.tabs{display:flex;gap:2px;padding:6px 14px 0;border-bottom:1px solid var(--line);background:var(--paper)}
+.tab{padding:6px 12px;color:var(--ink2);border:1px solid transparent;border-radius:var(--r-s) var(--r-s) 0 0}
+.tab.on{background:var(--card);border-color:var(--line);border-bottom-color:var(--card);margin-bottom:-1px;color:var(--ink);font-weight:600}
+.content{flex:1;padding:18px 20px}
+.chat{width:34px;border-left:1px solid var(--line);background:var(--paper);display:flex;justify-content:center;padding-top:12px;color:var(--ink3);font-size:12px;writing-mode:vertical-rl}
+.head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.head h1{font:var(--h1);margin:0;letter-spacing:var(--h1-ls)}
+.head .sum{color:var(--ink2)}
+.head .sum b{color:var(--bad);font-weight:600}
+.head .week{margin-left:auto;font-size:12px;color:var(--ink2)}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);gap:var(--gap);align-items:start}
+.card{border:var(--card-border);border-radius:var(--r);background:var(--card);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
+.row{display:flex;gap:8px;align-items:center;min-width:0}
+.row>b{font:var(--h2)}
+.muted{color:var(--ink3);font-size:12px}
+.chip{display:inline-block;padding:0 7px;border-radius:999px;background:var(--chip);color:var(--ink2);font-size:12px;white-space:nowrap}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:var(--r-s);padding:3px 10px;font:inherit;font-size:12px;color:var(--ink)}
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r-s);overflow:hidden;margin-left:auto}
+.seg span{padding:1px 9px;font-size:12px;color:var(--ink2)}
+.seg span.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.add{display:flex;gap:6px}
+.add input{flex:1;min-width:0;border:1px dashed var(--line);border-radius:var(--r-s);padding:6px 10px;font:inherit;font-size:13px;background:var(--field);color:var(--ink)}
+.gt{font:var(--gt);color:var(--ink2);padding:6px 0 0;display:flex;gap:6px;align-items:center;letter-spacing:var(--gt-ls)}
+.gt.bad{color:var(--bad)}
+.item{display:flex;gap:10px;align-items:flex-start;padding:7px 8px;border-radius:var(--r-s);border-bottom:var(--item-line)}
+.item:hover{background:var(--hover)}
+.box{flex:none;width:16px;height:16px;border:1.5px solid var(--ink3);border-radius:var(--box-r);margin-top:3px}
+.item.done .box{background:var(--ok);border-color:var(--ok)}
+.item.done .t{text-decoration:line-through;color:var(--ink3)}
+.when{flex:none;width:76px;font-size:12px;color:var(--ink2);padding-top:2px;font-variant-numeric:tabular-nums}
+.when.bad{color:var(--bad);font-weight:600}
+.body{flex:1;min-width:0}
+.t{font:var(--t)}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.ico{font-size:12px;color:var(--ink2)}
+.task{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:var(--r-s);background:var(--field);padding:7px 10px;font-size:13px}
+.task b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.task .go{color:var(--accent-ink);font-size:12px}
+.rec{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;white-space:nowrap;font-size:12px;color:var(--ink2);border:var(--card-border);border-radius:var(--r);background:var(--card);padding:8px 14px;box-shadow:var(--shadow)}
+.rec b{color:var(--ink)}
+.bar{flex:0 0 90px;height:5px;border-radius:3px;background:var(--chip);overflow:hidden}
+.bar i{display:block;height:100%;width:62%;background:var(--accent)}
+.note{margin-top:18px;padding:12px 14px;border:1px dashed var(--line);border-radius:10px;font:12px/1.7 -apple-system,"PingFang SC",sans-serif;color:var(--ink2);background:var(--card)}
+.note b{color:var(--ink)}
+.dot{display:none;width:8px;height:8px;border-radius:50%;margin-top:7px;flex:none}
+@media (max-width:860px){.grid{grid-template-columns:1fr}.chat{display:none}}
+
+/* ---------- 1 暖纸（Beer 现在的样子） ---------- */
+body.s1{--bg:#f3efe8;--paper:#fbf8f3;--card:#fff;--field:#fbf8f3;--chip:#f3efe8;--hover:#fbf8f3;--line:#e6dfd4;--ink:#2b2621;--ink2:#6f665c;--ink3:#a39a8f;--accent:#d9694a;--accent-soft:#fbe7df;--accent-ink:#b4482b;--bad:#c0463b;--bad-soft:#f8e1de;--warn:#b7791f;--warn-soft:#fbf0d9;--ok:#4f7a4a;
+  --font:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;--h1:700 20px/1.3 var(--font);--h1-ls:0;--h2:700 14px/1.4 var(--font);--gt:600 12px/1.4 var(--font);--gt-ls:0;--t:600 14px/1.5 var(--font);
+  --r:12px;--r-s:8px;--box-r:4px;--gap:12px;--shadow:none;--card-border:1px solid var(--line);--item-line:0}
+
+/* ---------- 2 编辑部（衬线标题，像报刊版面） ---------- */
+body.s2{--bg:#f6f3ec;--paper:#f6f3ec;--card:#fffdf8;--field:#f6f3ec;--chip:#ece6da;--hover:#f6f1e6;--line:#ddd4c3;--ink:#1d1a16;--ink2:#5e564b;--ink3:#9a9083;--accent:#9c2f22;--accent-soft:#f3e2dc;--accent-ink:#8a2a1e;--bad:#9c2f22;--bad-soft:#f3e2dc;--warn:#8a6a1c;--warn-soft:#f2ead3;--ok:#3d5a3a;
+  --font:-apple-system,"PingFang SC",sans-serif;--serif:"Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,serif;
+  --h1:700 30px/1.15 var(--serif);--h1-ls:.02em;--h2:700 17px/1.4 var(--serif);--gt:600 11px/1.4 var(--font);--gt-ls:.12em;--t:600 15px/1.5 var(--serif);
+  --r:2px;--r-s:2px;--box-r:50%;--gap:18px;--shadow:none;--card-border:0;--item-line:1px solid var(--line)}
+body.s2 .card,body.s2 .rec{border-top:3px solid var(--ink)}
+body.s2 .gt{border-bottom:1px solid var(--ink);padding-bottom:3px;text-transform:uppercase}
+body.s2 .head{border-bottom:1px solid var(--ink);padding-bottom:10px}
+body.s2 .top .logo{font-family:var(--serif);font-size:18px}
+body.s2 .tab.on{border-color:transparent;background:transparent;border-bottom:2px solid var(--ink);margin-bottom:-1px}
+body.s2 .item:hover{background:transparent}
+
+/* ---------- 3 极简中性（Linear / Things 那一路） ---------- */
+body.s3{--bg:#fafafa;--paper:#fff;--card:#fff;--field:#fafafa;--chip:#f2f2f3;--hover:#f7f7f8;--line:#ececee;--ink:#18181b;--ink2:#6b6b74;--ink3:#a1a1aa;--accent:#5b5bd6;--accent-soft:#eeeefc;--accent-ink:#4646b8;--bad:#e5484d;--bad-soft:#fdecec;--warn:#c27c0e;--warn-soft:#fdf3e1;--ok:#30a46c;
+  --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Inter",sans-serif;--h1:600 19px/1.3 var(--font);--h1-ls:-.01em;--h2:600 13px/1.4 var(--font);--gt:500 12px/1.4 var(--font);--gt-ls:0;--t:500 14px/1.5 var(--font);
+  --r:10px;--r-s:6px;--box-r:50%;--gap:14px;--shadow:0 1px 2px rgba(0,0,0,.04);--card-border:1px solid var(--line);--item-line:0}
+body.s3 .tabs{border-bottom:1px solid var(--line)}
+body.s3 .tab.on{background:transparent;border-color:transparent;border-bottom:2px solid var(--ink);border-radius:0}
+body.s3 .chip{border-radius:5px}
+body.s3 .when{color:var(--ink3)}
+
+/* ---------- 4 柔和卡片（滴答清单 / 提醒事项那一路） ---------- */
+body.s4{--bg:#f1f3f6;--paper:#f1f3f6;--card:#fff;--field:#f5f6f8;--chip:#eef0f4;--hover:#f5f7fa;--line:#e3e6ec;--ink:#1f2430;--ink2:#636b7a;--ink3:#a3a9b5;--accent:#4772fa;--accent-soft:#e8eeff;--accent-ink:#3358d4;--bad:#f0564a;--bad-soft:#feecea;--warn:#e8930c;--warn-soft:#fff4e0;--ok:#4772fa;
+  --font:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;--h1:700 22px/1.3 var(--font);--h1-ls:0;--h2:700 15px/1.4 var(--font);--gt:600 13px/1.4 var(--font);--gt-ls:0;--t:500 14px/1.5 var(--font);
+  --r:16px;--r-s:10px;--box-r:6px;--gap:14px;--shadow:0 2px 10px rgba(30,40,70,.06);--card-border:0;--item-line:0}
+body.s4 .dot{display:block}
+body.s4 .item{background:var(--field);margin-bottom:4px;border-radius:12px}
+body.s4 .tab.on{border:0;background:var(--accent-soft);color:var(--accent-ink);border-radius:999px;margin-bottom:6px}
+body.s4 .tab{border-radius:999px;margin-bottom:6px}
+body.s4 .tabs{padding-bottom:0}
+body.s4 .add input{border-style:solid;background:var(--field);border-color:transparent}
+body.s4 .task{border:0}
+</style>
+</head>
+<body class="s1">
+<div class="switch">
+  <b style="margin-right:6px">风格</b>
+  <a data-s="s1">1 暖纸（现在）</a>
+  <a data-s="s2">2 编辑部</a>
+  <a data-s="s3">3 极简中性</a>
+  <a data-s="s4">4 柔和卡片</a>
+  <span>骨架都是 A；只换配色、字体、圆角、阴影</span>
+</div>
+<div class="frame">
+<div class="biz">
+  <div class="top"><span class="logo">Beer</span><span class="search">搜索 ⌘K</span><span class="right">库：~/Obsidian/写作 · 家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="tab on">首页</span><span class="tab">录音</span><span class="tab">素材</span><span class="tab">选题</span><span class="tab">文章</span><span class="tab">发布</span><span class="tab">规则</span><span class="tab">回收站</span></div>
+  <div class="content">
+    <div class="head">
+      <h1>11 月 12 日 周四</h1>
+      <span class="sum">今天 4 件事 · <b>1 件逾期</b> · 本周还有 3 件到期 · 2 件等你处理</span>
+      <span class="week">本周产出：新素材 6 · 成稿 2 · 已发布 1</span>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="row"><b>日程与待办</b><span class="chip">7</span>
+          <div class="seg"><span class="on">按时间</span><span>全部</span><span>已完成</span></div></div>
+        <div class="add"><input placeholder="＋ 加一条，比如「周五前交稿」「每周一 10:00 选题会」，回车保存"><button class="btn">在对话里说</button></div>
+        <div class="gt bad">已逾期 · 1</div>
+        <div class="item"><span class="box"></span><span class="when bad">昨天截止</span><div class="body"><div class="t">把《AI 写作工作流》改完第二稿</div><div class="meta"><span class="chip acc">文章</span><span class="ico">↗ 打开文章</span></div></div><span class="dot" style="background:var(--bad)"></span></div>
+        <div class="gt">今天 · 3</div>
+        <div class="item"><span class="box"></span><span class="when">14:00</span><div class="body"><div class="t">某公司一面（腾讯会议 123-456）</div><div class="meta"><span class="chip">面试</span><span class="ico">✉ 13:30 邮件提醒</span><span class="ico">来自 QQ 邮箱</span></div></div><span class="dot" style="background:#8b5cf6"></span></div>
+        <div class="item"><span class="box"></span><span class="when">今天截止</span><div class="body"><div class="t">回复编辑的修改意见</div><div class="meta"><span class="ico">来自对话</span></div></div><span class="dot" style="background:var(--warn)"></span></div>
+        <div class="item done"><span class="box"></span><span class="when">09:00</span><div class="body"><div class="t">看昨天的读者留言</div><div class="meta"><span class="ico">↻ 每天</span></div></div></div>
+        <div class="gt">本周 · 3</div>
+        <div class="item"><span class="box"></span><span class="when">周五截止</span><div class="body"><div class="t">交《效率工具》专栏稿</div><div class="meta"><span class="chip warn">还剩 1 天</span><span class="ico">✉ 当天 9:00 邮件提醒</span></div></div><span class="dot" style="background:var(--warn)"></span></div>
+        <div class="item"><span class="box"></span><span class="when">周六 10:00</span><div class="body"><div class="t">某公司二面</div><div class="meta"><span class="chip">面试</span><span class="ico">✉ 9:30 邮件提醒</span></div></div><span class="dot" style="background:#8b5cf6"></span></div>
+        <div class="item"><span class="box"></span><span class="when">周日截止</span><div class="body"><div class="t">整理本周素材，挑下周选题</div><div class="meta"><span class="ico">↻ 每周日</span></div></div></div>
+        <div class="gt">以后 · 2 <span class="muted">（默认收起）</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--gap)">
+        <div class="card">
+          <div class="row"><b>等你处理</b><span class="chip bad">2</span></div>
+          <div class="task"><span class="chip warn">成稿</span><b>为什么我不再用番茄钟</b><span class="go">去处理 →</span></div>
+          <div class="task"><span class="chip">新选题简报</span><b>11-12 的选题简报已生成</b><span class="go">去处理 →</span></div>
+        </div>
+        <div class="rec"><b>录音</b><span>读书会-1110.m4a · 转写中</span><span class="bar"><i></i></span><span>62%</span><span style="margin-left:auto;color:var(--accent-ink)">去录音页 →</span></div>
+      </div>
+    </div>
+    <div class="note" id="note"></div>
+  </div>
+</div>
+<div class="chat">AI 对话（已收起）</div>
+</div>
+<script>
+var notes={
+s1:'<b>1 暖纸（Beer 现在的样子）</b>：米色纸底、陶土橘强调色、细边框、中等圆角。改动最小，其他分页不用动。缺点：和 DSH Desktop 宿主的冷灰界面放在一起略显「另一个应用」。',
+s2:'<b>2 编辑部</b>：标题用宋体衬线，卡片顶上一条粗黑线，分组标题小号字加宽字距，条目之间用细线隔开，几乎没有圆角，强调色是砖红。像报纸或杂志的版面，跟「写作工作台」的气质最贴。缺点：信息密度低一点；宋体在小字号上不如黑体清楚，所以只用在标题和条目名上。',
+s3:'<b>3 极简中性</b>：纯白底、灰阶文字、一个靛蓝强调色、分页用下划线、圆形勾选框、几乎看不出的阴影（Linear、Things 那一路，项目总控台也是这个方向）。最耐看、最不容易过时，和宿主界面最搭。缺点：个性弱。',
+s4:'<b>4 柔和卡片</b>：浅灰蓝底、大圆角、卡片无边框带柔和阴影，每条事项是一个浅色圆角块，右侧彩色圆点表示类别，分页是胶囊按钮（滴答清单、苹果提醒事项那一路）。最亲切、最「日程应用」。缺点：和 Beer 现有分页的风格差得最远，要整套改。'};
+function set(s){document.body.className=s;document.querySelectorAll('.switch a').forEach(function(a){a.classList.toggle('on',a.dataset.s===s)});document.getElementById('note').innerHTML=notes[s];if(location.hash!=='#'+s)history.replaceState(null,'','#'+s)}
+document.querySelectorAll('.switch a').forEach(function(a){a.onclick=function(){set(a.dataset.s)}});
+set((location.hash||'#s1').slice(1) in notes?(location.hash||'#s1').slice(1):'s1');
+</script>
+</body>
+</html>

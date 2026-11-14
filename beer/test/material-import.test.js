@@ -92,7 +92,7 @@ test('URL 文章：抓正文写进素材条目，frontmatter 正确，说明文�
   assert.match(page.requests[0].headers['user-agent'], /Mozilla\/5\.0/)
 })
 
-test('URL 视频：只存页面标题和简介，不抓正文，类型记「链接」', async t => {
+test('URL 视频（B 站、YouTube 以外的视频站）：只存页面标题和简介，不抓正文，类型记「链接」', async t => {
   const page = await htmlPage(t, [
     '<html><head>',
     '<title>视频页标题</title>',
@@ -107,13 +107,13 @@ test('URL 视频：只存页面标题和简介，不抓正文，类型记「链�
     now: NOW,
     // 视频站的域名没法改，测试里把请求转给本地假网页。
     fetch: (url, init) => {
-      assert.equal(url, 'https://www.youtube.com/watch?v=abc123')
-      return fetch(page.url + '/watch?v=abc123', init)
+      assert.equal(url, 'https://vimeo.com/123456')
+      return fetch(page.url + '/123456', init)
     },
   })
 
   const res = await beer.api('POST', '/materials/import/url', {
-    url: 'https://www.youtube.com/watch?v=abc123',
+    url: 'https://vimeo.com/123456',
     tags: ['AI 工具'],
   })
 
@@ -121,7 +121,7 @@ test('URL 视频：只存页面标题和简介，不抓正文，类型记「链�
   const entry = res.body.entry
   assert.equal(entry.type, '链接')
   assert.equal(entry.title, '十分钟讲清 AI 工作流')
-  assert.equal(entry.source, 'https://www.youtube.com/watch?v=abc123')
+  assert.equal(entry.source, 'https://vimeo.com/123456')
   assert.equal(entry.path, '内容库/素材/2026-11-06-十分钟讲清 AI 工作流/index.md')
 
   const file = await readFile(join(beer.vault, entry.path), 'utf8')
@@ -409,7 +409,7 @@ test('导入后 GET /materials 能看到新条目，类型、标签、来源都�
   assert.equal(byPath[pdf.body.entry.path].summary, '账单摘要')
   assert.equal(byPath[text.body.entry.path].type, '文字')
   assert.equal(byPath[text.body.entry.path].summary, '文字正文')
-  assert.deepEqual(list.body.types, ['录音', '链接', '图片', '文字', 'PDF', '手动'])
+  assert.deepEqual(list.body.types, ['录音', '视频', '链接', '图片', '文字', 'PDF', '手动'])
   assert.deepEqual(list.body.tags, ['AI 工具', 'Obsidian', '笔记方法', '写作', '效率', '自动化', '费用', '内容运营', '读书', '生活'])
 })
 
@@ -457,7 +457,7 @@ test('AI 工具定义：名字、参数、描述里要求先读说明并按标�
 
   assert.equal(tool.name, 'beer_save_material')
   assert.equal(tool.parameters.title.required, true)
-  assert.deepEqual(tool.parameters.type.enum, ['链接', '图片', 'PDF', '文字', '手动'])
+  assert.deepEqual(tool.parameters.type.enum, ['链接', '视频', '图片', 'PDF', '文字', '手动'])
   assert.match(tool.description, /内容库\/素材\/说明\.md/)
   assert.match(tool.description, /标签只能从标签表里选/)
   assert.equal(tool.output.schema.type, 'string')

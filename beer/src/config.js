@@ -7,10 +7,11 @@ export const Config = Schema.object({
   homeApiBase: Schema.string().default('http://mac-mini:8787').description('家里服务（Mac mini）的地址'),
   opencodeGoBase: Schema.string().default('https://opencode.ai').description('opencode go 的服务地址（模型与限额）'),
   platformVersionModel: Schema.string().default('deepseek-v4.1-flash').description('生成平台版本用的文本模型'),
+  reminderApiBase: Schema.string().default('https://remind.example.com').description('云端提醒服务（Cloudflare Worker）的地址'),
   rinApiBase: Schema.string().default('').description('Rin 博客接口地址'),
   keychainService: Schema.string().default('beer').description('macOS 钥匙串里条目的服务名'),
   audioCacheLimitGB: Schema.number().default(5).description('录音缓存上限（GB），超过时按最久没听删除'),
 })
 
 /** 面板可以看到的配置项（不含数据目录等本机细节）。 */
-export const PUBLIC_CONFIG_KEYS = ['homeApiBase', 'rinApiBase', 'opencodeGoBase', 'audioCacheLimitGB']
+export const PUBLIC_CONFIG_KEYS = ['homeApiBase', 'reminderApiBase', 'rinApiBase', 'opencodeGoBase', 'audioCacheLimitGB']

@@ -10,7 +10,7 @@ window.__ModuleLoader__.load({
     let hostCtx = null
 
     const CSS = `
-.beer{--bg:#f3efe8;--paper:#fbf8f3;--line:#e6dfd4;--ink:#2b2621;--ink2:#6f665c;--ink3:#a39a8f;--accent:#d9694a;--accent-soft:#fbe7df;--accent-ink:#b4482b;--bad:#c0463b;--bad-soft:#f8e1de;
+.beer{--bg:#f3efe8;--paper:#fbf8f3;--line:#e6dfd4;--ink:#2b2621;--ink2:#6f665c;--ink3:#a39a8f;--accent:#d9694a;--accent-soft:#fbe7df;--accent-ink:#b4482b;--bad:#c0463b;--bad-soft:#f8e1de;--warn:#b7791f;
   position:relative;flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",sans-serif;overflow:hidden}
 .beer *{box-sizing:border-box}
 .beer-top{position:sticky;top:0;z-index:3;display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--paper);min-width:0;flex-wrap:wrap}
@@ -289,25 +289,157 @@ window.__ModuleLoader__.load({
 .beer-pub-url:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 .beer-pub-select{border:1px solid var(--line);border-radius:7px;background:#fff;padding:3px 6px;font:inherit;font-size:12px;color:var(--ink)}
 .beer-pub-link{color:var(--accent-ink);overflow-wrap:anywhere}
-.beer-home{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;align-content:start;min-height:100%;min-width:0}
-.beer-home.narrow{grid-template-columns:1fr}
-.beer-home-tile{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.beer-home-tile.wide{grid-column:span 2}
-.beer-home.narrow .beer-home-tile.wide{grid-column:span 1}
-.beer-home-tile.full{grid-column:1/-1}
-.beer-home-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
-.beer-home-row>b{font-size:14px}
-.beer-home-task{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:6px 9px;text-align:left;font:inherit;font-size:13px;color:var(--ink);cursor:pointer;min-width:0}
-.beer-home-task:hover{border-color:var(--accent);background:var(--accent-soft)}
-.beer-home-task b{flex:1 1 120px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.beer-home-task .go{flex:none;color:var(--accent-ink);font-size:12px}
-.beer-home-stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:2px}
-.beer-home-stat b{display:block;font-size:24px;line-height:1.2}
-.beer-home-stat span{font-size:11px;color:var(--ink3)}
-.beer-home-rec{display:flex;flex-direction:column;gap:3px;min-width:0}
-.beer-home-rec b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.beer-home-brief{border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:0 10px;max-height:360px;overflow:auto}
-.beer-home-brief .beer-prev{padding:6px 0 8px}
+/* 日程与待办（#49）：独立卡片，方便 #47 的两栏首页直接放进左栏 */
+.beer-sched{display:flex;flex-direction:column;gap:8px;min-width:0}
+.beer-sched-hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.beer-sched-seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;margin-left:auto;flex:none}
+.beer-sched-seg button{border:0;background:#fff;padding:2px 9px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.beer-sched-seg button.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.beer-sched-add{display:flex;gap:6px;min-width:0}
+.beer-sched-add input{flex:1;min-width:0;border:1px dashed var(--line);border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;background:var(--paper);color:var(--ink)}
+.beer-sched-add input:focus{outline:none;border-color:var(--accent);background:#fff}
+.beer-sched-add input:disabled{opacity:.6}
+.beer-sched-add .beer-btn{flex:none;white-space:nowrap}
+.beer-sched-groups{display:flex;flex-direction:column;gap:4px;min-width:0}
+.beer-sched-group{display:flex;flex-direction:column;gap:1px;min-width:0}
+.beer-sched-gt{display:flex;gap:6px;align-items:center;padding:4px 2px 2px;border:0;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--ink2);text-align:left;cursor:default}
+.beer-sched-gt.click{cursor:pointer}
+.beer-sched-gt.bad{color:var(--bad)}
+.beer-sched-gt .muted{font-weight:400;color:var(--ink3)}
+.beer-sched-item{display:flex;gap:8px;align-items:flex-start;padding:5px 6px;border-radius:8px;min-width:0}
+.beer-sched-item:hover{background:var(--paper)}
+.beer-sched-item.past{opacity:.55}
+.beer-sched-box{flex:none;width:16px;height:16px;margin-top:3px;border:1.5px solid var(--ink3);border-radius:4px;background:#fff;color:#fff;font-size:11px;line-height:1;padding:0;cursor:pointer}
+.beer-sched-box.on{background:#4f7a4a;border-color:#4f7a4a}
+.beer-sched-box:disabled{opacity:.6;cursor:default}
+.beer-sched-dot{flex:none;width:16px;text-align:center;color:var(--accent);font-weight:700;line-height:1.7}
+.beer-sched-when{flex:none;width:76px;padding-top:2px;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.beer-sched-day{display:block;font-size:11px;color:var(--ink3)}
+.beer-sched-when.bad{color:var(--bad);font-weight:600}
+.beer-sched-when.plan{color:var(--accent-ink)}
+.beer-sched-when.muted{color:var(--ink3)}
+.beer-sched-body{flex:1;min-width:0}
+.beer-sched-title{font-weight:600;overflow-wrap:anywhere}
+.beer-sched-item.done .beer-sched-title{text-decoration:line-through;color:var(--ink3)}
+.beer-sched-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:1px;align-items:center}
+.beer-sched-ico{font-size:11px;color:var(--ink3)}
+.beer-sched-ico.bad{color:var(--bad)}
+.beer-sched-ico.acc{color:var(--accent-ink)}
+.beer-sched-del{flex:none;border:0;background:none;color:var(--ink3);font:inherit;font-size:11px;cursor:pointer;padding:2px 4px;opacity:.55;white-space:nowrap}
+.beer-sched-item:hover .beer-sched-del,.beer-sched-del:focus{opacity:1}
+.beer-sched-del:hover{color:var(--bad)}
+.beer-sched-del:disabled{opacity:.4;cursor:default}
+.beer-sched-empty{color:var(--ink3);font-size:12px;padding:4px 0}
+.beer-sched-item.selected{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.beer-sched-jump{border:1px solid var(--accent);border-radius:999px;background:var(--accent-soft);color:var(--accent-ink);font:inherit;font-size:11px;padding:1px 8px;cursor:pointer;white-space:nowrap}
+/* 首页小月历（#52）：周一开头，橘点 = 有时刻，黄点 = 只有截止日，红字 = 有逾期 */
+.beer-cal{display:flex;flex-direction:column;gap:8px;min-width:0}
+.beer-cal-hd{display:flex;gap:8px;align-items:baseline;min-width:0}
+.beer-cal-hd b{font-size:14px}
+.beer-cal-nav{margin-left:auto;display:flex;gap:2px;flex:none}
+.beer-cal-nav button{border:1px solid var(--line);background:#fff;border-radius:7px;width:24px;height:24px;padding:0;font:inherit;font-size:14px;line-height:1;color:var(--ink2);cursor:pointer}
+.beer-cal-nav button:hover{border-color:var(--accent);color:var(--accent-ink)}
+.beer-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;min-width:0}
+.beer-cal-h{text-align:center;font-size:11px;color:var(--ink3);padding:1px 0 2px}
+.beer-cal-day{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;border:0;border-radius:7px;background:none;padding:5px 0 8px;font:inherit;font-size:12px;color:var(--ink);cursor:pointer;font-variant-numeric:tabular-nums}
+.beer-cal-day:hover{background:var(--accent-soft)}
+.beer-cal-day.out{color:var(--ink3);opacity:.65}
+.beer-cal-day.today{color:var(--accent-ink);font-weight:700;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.beer-cal-day.overdue{color:var(--bad);font-weight:700}
+.beer-cal-day.selected{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent-ink)}
+.beer-cal-dots{position:absolute;left:0;right:0;bottom:1px;display:flex;gap:2px;justify-content:center;pointer-events:none}
+.beer-cal-dots i,.beer-cal-legend i{display:inline-block;width:5px;height:5px;border-radius:50%}
+.beer-cal-dots i.ev,.beer-cal-legend i.ev{background:var(--accent)}
+.beer-cal-dots i.dl,.beer-cal-legend i.dl{background:var(--warn)}
+.beer-cal-legend{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--ink3)}
+.beer-cal-legend span{display:inline-flex;align-items:center;gap:4px}
+.beer-cal-legend .late{color:var(--bad)}
+/* 没排期 / 子步骤 / 排到…（#54） */
+.beer-sched-group.nodate{margin-top:4px;padding-top:6px;border-top:1px dashed var(--line)}
+.beer-sched-gt .beer-sched-sub{font-weight:400;color:var(--ink3);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.beer-sched-itemwrap{display:flex;flex-direction:column;min-width:0}
+.beer-sched-planbtn{flex:none;align-self:center;font-size:11px;padding:2px 8px;opacity:.85}
+.beer-sched-planmenu{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:0 0 4px 92px;padding:5px 7px;border:1px dashed var(--line);border-radius:8px;background:var(--paper)}
+.beer-sched-planmenu button{border:1px solid var(--line);border-radius:6px;background:#fff;padding:2px 7px;font:inherit;font-size:11px;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.beer-sched-planmenu button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.beer-sched-planmenu button.clear{color:var(--ink3)}
+.beer-sched-planmenu button:disabled{opacity:.5;cursor:default}
+.beer-sched-steps{display:flex;flex-direction:column;gap:2px;margin:4px 0 2px;padding-left:2px;min-width:0}
+.beer-sched-stepwrap{display:flex;flex-direction:column;min-width:0}
+.beer-sched-step{display:flex;gap:7px;align-items:center;font-size:12px;color:var(--ink3);min-width:0}
+.beer-sched-step.on{color:var(--ink2)}
+.beer-sched-step.done .beer-sched-steptitle{text-decoration:line-through;color:var(--ink3)}
+.beer-sched-sbox{flex:none;width:13px;height:13px;border:1.5px solid var(--ink3);border-radius:3px;background:#fff;color:#fff;font-size:9px;line-height:1;padding:0;cursor:pointer}
+.beer-sched-sbox.on{background:var(--ok,#4f7a4a);border-color:var(--ok,#4f7a4a)}
+.beer-sched-sbox:disabled{opacity:.55;cursor:default}
+.beer-sched-steptitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.beer-sched-sest{flex:none;font-size:11px;color:var(--ink3)}
+.beer-sched-splan{flex:none;margin-left:auto;border:0;background:none;font:inherit;font-size:11px;color:var(--ink3);cursor:pointer;padding:1px 4px;white-space:nowrap}
+.beer-sched-splan:hover{color:var(--accent-ink)}
+.beer-sched-stepctx{font-weight:400;color:var(--ink3);font-size:11px}
+.beer-home{display:flex;flex-direction:column;gap:12px;min-height:100%;min-width:0}
+.beer-home-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;min-width:0}
+.beer-home-head h1{font-size:20px;margin:0}
+.beer-home-sum{color:var(--ink2)}
+.beer-home-sum b{color:var(--bad)}
+.beer-home-week{margin-left:auto;font-size:12px;color:var(--ink2)}
+.beer-home-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);gap:12px;align-items:start;min-width:0}
+.beer-home.narrow .beer-home-grid{grid-template-columns:1fr}
+.beer-home-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.beer-home-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.beer-home-card-hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.beer-home-card-hd>b{font-size:14px}
+.beer-home-card-hd .beer-linkbtn{margin-left:auto}
+.beer-home-empty{color:var(--ink3);font-size:12px;padding:2px 0}
+.beer-home-todo{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:6px 9px;text-align:left;font:inherit;font-size:13px;color:var(--ink);cursor:pointer;min-width:0}
+.beer-home-todo:hover{border-color:var(--accent);background:var(--accent-soft)}
+.beer-home-todo b{flex:1 1 120px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.beer-home-go{flex:none;color:var(--accent-ink);font-size:12px}
+.beer-home-brieftitle{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.beer-home-art{display:flex;gap:8px;align-items:center;width:100%;border:0;border-top:1px solid var(--bg);background:none;padding:5px 2px;text-align:left;font:inherit;font-size:13px;color:var(--ink);cursor:pointer;min-width:0}
+.beer-home-art:first-of-type{border-top:0}
+.beer-home-art b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.beer-home-art .beer-bar{flex:0 0 64px;height:4px;background:var(--bg)}
+.beer-home-art:hover b{color:var(--accent-ink)}
+.beer-home-rec{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;background:#fff;padding:7px 12px;min-width:0}
+.beer-home-rec>b{color:var(--ink)}
+.beer-home-rec .beer-bar{flex:0 0 90px}
+.beer-home-rec .beer-linkbtn{white-space:nowrap}
+/* 识别到日程（#55）：右栏最上方，只在有未确认的识别结果时显示 */
+.beer-found{display:flex;flex-direction:column;gap:8px;min-width:0;border:1px solid var(--accent);border-radius:12px;background:linear-gradient(180deg,var(--accent-soft),#fff 58%);padding:12px 14px;box-shadow:0 0 0 3px rgba(217,105,74,.07)}
+.beer-found-hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.beer-found-hd>b{font-size:14px}
+.beer-found-pulse{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(217,105,74,.45);animation:beer-found-pulse 1.8s infinite}
+@keyframes beer-found-pulse{0%{box-shadow:0 0 0 0 rgba(217,105,74,.45)}70%{box-shadow:0 0 0 7px rgba(217,105,74,0)}100%{box-shadow:0 0 0 0 rgba(217,105,74,0)}}
+.beer-found-x{margin-left:auto;flex:none;border:0;background:none;color:var(--ink3);font:inherit;font-size:14px;line-height:1;cursor:pointer;padding:2px 4px}
+.beer-found-x:hover{color:var(--ink)}
+.beer-found-entry{display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--line);padding-top:8px;min-width:0}
+.beer-found-entry:first-of-type{border-top:0;padding-top:0}
+.beer-found-item{display:flex;flex-direction:column;gap:4px;min-width:0}
+.beer-found-title{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.beer-found-title b{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.beer-found-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:2px 10px;font-size:12px;min-width:0}
+.beer-found-kv>span:nth-child(odd){color:var(--ink3)}
+.beer-found-kv>span:nth-child(even){color:var(--ink2);overflow-wrap:anywhere}
+.beer-found-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+/* 等你处理（#48）：类型图标 + 状态行 + 平台版本状态 + 具体动作 */
+.beer-wait{display:flex;flex-direction:column;gap:2px;min-width:0}
+.beer-wait-longest{margin-left:auto}
+.beer-wait-row{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--bg);min-width:0}
+.beer-wait-row:first-of-type{border-top:0;padding-top:2px}
+.beer-wait-ic{flex:none;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:var(--accent-soft);color:var(--accent-ink)}
+.beer-wait-ic.ok{background:#e3f1e7;color:#2f7a48}
+.beer-wait-ic.bad{background:var(--bad-soft);color:var(--bad)}
+.beer-wait-bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.beer-wait-tt{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.beer-wait-sub{font-size:12px;color:var(--ink2);overflow-wrap:anywhere}
+.beer-wait-sub b{color:var(--bad);font-weight:600}
+.beer-wait-plats{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px}
+.beer-wait-plat{font-size:11px;border-radius:6px;padding:0 6px;border:1px solid var(--line);color:var(--ink2);background:var(--paper);white-space:nowrap}
+.beer-wait-plat.y{border-color:#cfe0c9;background:#eef5eb;color:#4f7a4a}
+.beer-wait-plat.n{border-style:dashed;color:var(--ink3)}
+.beer-wait-plat.p{border-color:#f0d9a8;background:#fbf0d9;color:#b7791f}
+.beer-wait-act{flex:none;align-self:center}
 `
 
     async function api(method, path, body) {
@@ -1725,6 +1857,8 @@ window.__ModuleLoader__.load({
       const [topicPath, setTopicPath] = useState('')
       const [adding, setAdding] = useState(false)
       const [matMsg, setMatMsg] = useState('')
+      const [newTitle, setNewTitle] = useState('')
+      const newTitleRef = useRef(null)
 
       const load = useCallback(async assure => {
         try {
@@ -1751,17 +1885,21 @@ window.__ModuleLoader__.load({
       }
 
       // 选中角度 → 新建状态为「选题」的文章，然后切到文章分页继续写。
+      // 模型给的素材引用可能对不上（比如填了笔记路径）：跳过这些，照样建，并在提示里列出。
       const createTopic = async angle => {
         if (busy) return
         setBusy(angle.title)
         try {
           const created = await api('POST', '/topics/articles', {
-            title: angle.title, why: angle.why, materials: angle.materials,
+            title: angle.title, why: angle.why, materials: angle.materials, skipMissing: true,
           })
-          setHint(`已建出选题「${created.title}」，可以到文章分页继续写。`)
+          const skipped = created.skipped ?? []
+          setHint(`已建出选题「${created.title}」，可以到文章分页继续写。`
+            + (skipped.length ? `跳过了 ${skipped.length} 条不是素材的引用：${skipped.join('、')}` : ''))
           onError('')
           await load(false)
-          if (onOpenArticles) onOpenArticles(created.path)
+          // 有被跳过的引用时留在本页，让提示看得到；角度卡片上的「已建 · 打开」可以再跳过去。
+          if (onOpenArticles && !skipped.length) onOpenArticles(created.path)
         } catch (e) { onError(e.message) } finally { setBusy('') }
       }
 
@@ -1786,17 +1924,40 @@ window.__ModuleLoader__.load({
         } catch (e) { onError(e.message) } finally { setBusy('') }
       }
 
-      const toggleMatMode = async () => {
-        if (matOpen) { setMatOpen(false); return }
+      // 每次打开都重新拉素材列表，素材分页里刚加的条目也能勾选。
+      const openMatPanel = async () => {
         setMatOpen(true)
         setMatMsg('')
-        if (!materials) {
-          try {
-            const list = await api('GET', '/materials')
-            setMaterials(list.entries)
-          } catch (e) { onError(e.message) }
-        }
         if (!topicPath && data?.topics?.length) setTopicPath(data.topics[0].path)
+        try {
+          const list = await api('GET', '/materials')
+          setMaterials(list.entries)
+          setSelectedMats(prev => prev.filter(path => list.entries.some(entry => entry.path === path)))
+        } catch (e) { onError(e.message) }
+      }
+      const toggleMatMode = () => (matOpen ? setMatOpen(false) : openMatPanel())
+      const startNewTopic = async () => {
+        if (!matOpen) await openMatPanel()
+        newTitleRef.current?.focus()
+      }
+
+      // 手动新建选题：自己填标题，带上当前勾选的素材（可以一条都不勾）。
+      const createManualTopic = async e => {
+        e.preventDefault()
+        const title = newTitle.trim()
+        if (!title) { setMatMsg('先填选题标题。'); newTitleRef.current?.focus(); return }
+        if (busy) return
+        setBusy('new')
+        setMatMsg('')
+        try {
+          const created = await api('POST', '/topics/articles', { title, materials: selectedMats })
+          setHint(`已建出选题「${created.title}」${created.materials.length ? `，带 ${created.materials.length} 条素材` : ''}，可以到文章分页继续写。`)
+          setNewTitle('')
+          setSelectedMats([])
+          setTopicPath(created.path)
+          onError('')
+          await load(false)
+        } catch (e) { setMatMsg(e.message) } finally { setBusy('') }
       }
 
       const toggleMat = path => setSelectedMats(prev =>
@@ -1825,20 +1986,30 @@ window.__ModuleLoader__.load({
       const angles = data.angles ?? []
       const topics = data.topics ?? []
 
-      const angleCards = angles.map(angle => h('div', { key: angle.title, className: 'beer-angle' },
+      // 已经按这个角度建过选题（标题相同）就不再给「建选题」，改成打开那篇，避免重复建。
+      const builtOf = angle => topics.find(item => (item.title || '').trim() === angle.title.trim())
+      const angleCards = angles.map(angle => {
+        const built = builtOf(angle)
+        return h('div', { key: angle.title, className: 'beer-angle' },
         h('h3', null, angle.title),
         h('div', { className: 'why' }, angle.why || '（模型没有给出理由）'),
         angle.materials?.length > 0 && h('div', { className: 'refs' },
           angle.materials.map(ref => h('span', { key: ref, className: 'beer-chip' }, ref))),
         h('div', { className: 'acts' },
-          h('button', {
-            className: 'beer-btn pri', disabled: !!busy,
-            onClick: () => createTopic(angle),
-          }, busy === angle.title ? '处理中…' : '建选题'),
+          built
+            ? h('button', {
+              className: 'beer-btn', title: built.path,
+              onClick: () => onOpenArticles?.(built.path),
+            }, '已建 · 打开')
+            : h('button', {
+              className: 'beer-btn pri', disabled: !!busy,
+              onClick: () => createTopic(angle),
+            }, busy === angle.title ? '处理中…' : '建选题'),
           h('button', {
             className: 'beer-btn', disabled: !!busy,
             onClick: () => discuss(angle),
-          }, '和 AI 讨论'))))
+          }, '和 AI 讨论')))
+      })
 
       const topicList = h('div', { className: 'beer-topic-list' },
         topics.length
@@ -1851,17 +2022,26 @@ window.__ModuleLoader__.load({
               h('span', { className: 'beer-chip' }, item.status || '选题'),
               h('span', { className: 'beer-muted' }, item.date || ''))))
           : h('div', { className: 'beer-muted', style: { padding: '4px 8px' } },
-            '还没有选题。从上面的角度里挑一个点「建选题」，或在文章分页手动新建。'))
+            '还没有选题。点上面「＋ 新建选题」自己建一个，或从 AI 建议的角度里挑一个点「建选题」。'))
 
-      // 多选素材放进选题：勾选素材卡片、选择一篇「选题」文章、调用 /topics/materials。
+      // 勾选素材后两种用法：带着它们新建一个选题，或放进已有的「选题」文章（/topics/materials）。
       const materialPicker = matOpen && h('div', { className: 'beer-topic-brief' },
         h('div', { className: 'beer-rowo', style: { padding: '9px 0 4px' } },
-          h('b', null, '多选素材放进选题'),
+          h('b', null, '选素材'),
           h('span', { className: 'beer-muted' },
-            selectedMats.length ? `已选 ${selectedMats.length} 条` : '勾选下面的素材，再选一篇「选题」文章。'),
+            selectedMats.length ? `已选 ${selectedMats.length} 条` : '勾选下面的素材，新建选题或放进已有选题；新建也可以不勾。'),
           h('button', { className: 'beer-btn ghost', style: { marginLeft: 'auto' }, onClick: toggleMatMode }, '收起')),
+        h('form', { className: 'beer-matselectbar', style: { marginBottom: 6 }, onSubmit: createManualTopic },
+          h('span', { className: 'beer-muted' }, '新建'),
+          h('input', {
+            ref: newTitleRef, className: 'beer-mat-select', style: { flex: '1 1 200px', maxWidth: 360 },
+            value: newTitle, maxLength: 120, placeholder: '选题标题', 'aria-label': '新选题标题',
+            onChange: e => setNewTitle(e.target.value),
+          }),
+          h('button', { className: 'beer-btn pri', type: 'submit', disabled: !!busy || !newTitle.trim() },
+            busy === 'new' ? '新建中…' : (selectedMats.length ? `新建选题（带 ${selectedMats.length} 条素材）` : '新建选题'))),
         !topics.length
-          ? h('div', { className: 'beer-muted' }, '还没有状态为「选题」的文章，先在上面建一个。')
+          ? h('div', { className: 'beer-muted' }, '还没有状态为「选题」的文章，可以用上面一行新建一个。')
           : h('div', { className: 'beer-matselectbar' },
             h('span', { className: 'beer-muted' }, '放进'),
             h('select', {
@@ -1877,8 +2057,8 @@ window.__ModuleLoader__.load({
             h('button', {
               className: 'beer-btn ghost', onClick: () => setSelectedMats([]),
               disabled: !selectedMats.length,
-            }, '清空勾选'),
-            matMsg && h('span', { className: 'beer-muted' }, matMsg)),
+            }, '清空勾选')),
+        matMsg && h('div', { className: 'beer-muted', style: { padding: '4px 0' } }, matMsg),
         !materials
           ? h('div', { className: 'beer-muted' }, '加载素材中…')
           : !materials.length
@@ -1902,6 +2082,7 @@ window.__ModuleLoader__.load({
           h('b', null, `${data.date} 选题简报`),
           h('span', { className: 'beer-muted', title: data.briefPath }, data.briefPath),
           h('button', { className: 'beer-btn', disabled: busy === 'brief', onClick: () => load(true) }, '刷新'),
+          h('button', { className: 'beer-btn', disabled: busy === 'brief', onClick: startNewTopic }, '＋ 新建选题'),
           h('button', { className: 'beer-btn', disabled: busy === 'brief', onClick: toggleMatMode }, matOpen ? '收起多选素材' : '多选素材 → 放入选题'),
           h('button', { className: 'beer-btn pri', disabled: busy === 'brief', onClick: regenerate },
             busy === 'brief' ? '生成中…' : '重新生成')),
@@ -2461,130 +2642,995 @@ window.__ModuleLoader__.load({
               h('span', { className: 'beer-chip' + (item.count >= 3 ? ' warn' : '') }, `${item.count} / 3 次`)))))
     }
 
-    // ---- 首页：今日任务、录音进度、本周产出、规则积累和当天选题简报 ----
-    // 只调 /home?ensure=1 和 /topics 读汇总，不碰会话；每天第一次打开会让服务端补生成简报，
-    // 同一天文件已存在时不会重复调模型。没有会话时照常可用。
+    // ---- 日程与待办（#49）：独立卡片，只依赖 /schedule 的读、勾选、删除接口 ----
+    // 保持自包含：不读 HomeView 的 state，也不改 HomeView 的布局；
+    // #47 的两栏首页可以直接把它放进左栏。分组 / 时间标签 / 汇总都由服务端算好。
 
-    function HomeStat({ value, label }) {
-      return h('div', { className: 'beer-home-stat' }, h('b', null, String(value)), h('span', null, label))
+    function scheduleWhenClass(item) {
+      if (item.past) return 'beer-sched-when muted'
+      if (item.overdue) return 'beer-sched-when bad'
+      if (item.when?.kind === 'plan') return 'beer-sched-when plan'
+      if (item.when?.kind === 'estimate' || item.when?.kind === 'none') return 'beer-sched-when muted'
+      return 'beer-sched-when'
     }
 
-    function HomeView({ narrow, onOpenTab, onOpenConflict, onError }) {
-      const [home, setHome] = useState(null)
-      const [topics, setTopics] = useState(null)
-      const [busy, setBusy] = useState(false)
-      const [hint, setHint] = useState('')
+    /**
+     * 月历点日期后，左侧列表按这一天找：事项自己的事件 / 计划日、截止日，或任一步骤的日期。
+     * 同时有计划日和截止日的事项点两天都能命中（月历这两天也各自有标记）。
+     */
+    function scheduleItemOnDate(item, date) {
+      if (!date) return false
+      if ((item.date ?? item.scheduled ?? item.due) === date) return true
+      if (item.due === date || item.scheduled === date) return true
+      return (item.subtasks ?? []).some(child => scheduleItemOnDate(child, date))
+    }
+
+    /** 2026-11-13 → 「11 月 13 日」；和首页日期一样按本机时区解析。 */
+    function scheduleDayLabel(date) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(date ?? ''))
+      if (!m) return date || ''
+      return `${Number(m[2])} 月 ${Number(m[3])} 日`
+    }
+
+    // 「排到…」菜单用：本机日期加减 / 星期几，和服务端的 today / weekEnd 对齐。
+    function schedDate(text) {
+      const [year, month, day] = String(text ?? '').split('-').map(Number)
+      return new Date(year, month - 1, day)
+    }
+
+    function schedDateText(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    }
+
+    function schedAddDays(text, days) {
+      const date = schedDate(text)
+      date.setDate(date.getDate() + days)
+      return schedDateText(date)
+    }
+
+    function schedWeekday(text) {
+      return WEEKDAYS[schedDate(text).getDay()] ?? ''
+    }
+
+    function scheduleEstimateLabel(minutes) {
+      if (minutes >= 60) {
+        const hours = minutes / 60
+        return `约 ${Number.isInteger(hours) ? hours : hours.toFixed(1)} 小时`
+      }
+      return `约 ${minutes} 分钟`
+    }
+
+    /** 今天 / 明天 / 这周剩下的日子；按日期去重。 */
+    function schedulePlanOptions(data) {
+      if (!data?.today) return []
+      const options = [
+        { date: data.today, label: '今天' },
+        { date: schedAddDays(data.today, 1), label: '明天' },
+      ]
+      if (data.weekEnd) {
+        for (let date = schedAddDays(data.today, 2); date <= data.weekEnd; date = schedAddDays(date, 1)) {
+          options.push({ date, label: schedWeekday(date) })
+        }
+      }
+      const seen = new Set()
+      return options.filter(option => {
+        if (seen.has(option.date)) return false
+        seen.add(option.date)
+        return true
+      })
+    }
+
+    function SchedulePlanMenu({ item, options, busy, onPick }) {
+      return h('div', { className: 'beer-sched-planmenu' },
+        options.map(option => h('button', {
+          key: option.date,
+          type: 'button',
+          disabled: busy,
+          className: option.date === item.scheduled ? 'on' : '',
+          onClick: () => onPick(item, option.date),
+        }, option.label)),
+        item.scheduled
+          ? h('button', {
+            type: 'button', className: 'clear', disabled: busy,
+            onClick: () => onPick(item, null),
+          }, '取消排期')
+          : null)
+    }
+
+    function ScheduleItem({
+      item, busy, today, planOpen, planOptions, onPlanToggle, onPlanPick,
+      onToggle, onDelete, onOpenArticle, selectedDate,
+    }) {
+      const event = item.kind === 'event'
+      const meta = []
+      for (const tag of item.tags ?? []) meta.push(h('span', { key: 'tag-' + tag, className: 'beer-chip' }, tag))
+      if (item.deadline) {
+        meta.push(h('span', {
+          key: 'deadline',
+          className: 'beer-chip' + (item.deadline.overdue ? ' bad' : ''),
+        }, item.deadline.label))
+      }
+      if (item.recurrence) {
+        // 服务端会给出中文 recurrenceLabel；拿不到时退回文件里的原文，不在客户端再解析规则。
+        const label = item.recurrenceLabel || item.recurrence
+        meta.push(h('span', { key: 'rec', className: 'beer-chip', title: `重复：${label}` }, '↻ ' + label))
+      }
+      if (item.reminderError) {
+        meta.push(h('span', { key: 'rem', className: 'beer-sched-ico bad', title: item.reminderError }, '✉ 提醒没建成'))
+      } else if (item.reminderLabel) {
+        meta.push(h('span', { key: 'rem', className: 'beer-sched-ico' }, '✉ ' + item.reminderLabel))
+      }
+      if (typeof item.location === 'string' && item.location.trim()) {
+        meta.push(h('span', { key: 'loc', className: 'beer-sched-ico', title: '地点' }, '地点 ' + item.location.trim()))
+      }
+      if (item.source) meta.push(h('span', { key: 'src', className: 'beer-sched-ico' }, '来自 ' + item.source))
+      if (event && item.past && !item.done) meta.push(h('span', { key: 'ended', className: 'beer-sched-ico' }, '已结束'))
+      if (item.startsInMinutes != null) {
+        meta.push(h('span', { key: 'soon', className: 'beer-sched-ico acc' }, `还有 ${item.startsInMinutes} 分钟`))
+      }
+      if (item.subtaskCount > 0) {
+        meta.push(h('span', { key: 'steps', className: 'beer-sched-ico' }, `${item.subtaskDone} / ${item.subtaskCount} 步`))
+      }
+      if (item.articlePath && onOpenArticle) {
+        meta.push(h('button', {
+          key: 'article', className: 'beer-linkbtn',
+          onClick: () => onOpenArticle(item.articlePath),
+        }, '↗ 打开文章'))
+      }
+      const canPlan = item.when?.kind === 'plan' || item.group === 'unscheduled' || Boolean(item.parentId)
+      const planButton = canPlan
+        ? h('button', {
+          type: 'button',
+          className: 'beer-btn beer-sched-planbtn',
+          title: item.scheduled ? '改计划日 / 取消排期' : '排到某天',
+          disabled: busy,
+          onClick: () => onPlanToggle(item.id),
+        }, item.scheduled ? '改期…' : '排到…')
+        : null
+
+      // 子步骤：进度之外，每一步都能单独勾选 / 排到某天；计划日已过的只显示计划日，不标红。
+      const stepRows = (item.subtasks ?? []).length
+        ? h('div', { className: 'beer-sched-steps' },
+          item.subtasks.map(step => h('div', {
+            key: step.id,
+            className: 'beer-sched-stepwrap',
+          },
+            h('div', {
+              className: 'beer-sched-step' + (step.done ? ' done' : '') +
+                (step.when?.kind === 'plan' ? ' on' : ''),
+            },
+              h('button', {
+                type: 'button',
+                role: 'checkbox',
+                'aria-checked': step.done,
+                'aria-label': step.done ? '取消完成这一步' : '完成这一步',
+                className: 'beer-sched-sbox' + (step.done ? ' on' : ''),
+                disabled: busy,
+                onClick: () => onToggle(step),
+              }, step.done ? '✓' : ''),
+              h('span', { className: 'beer-sched-steptitle' }, step.title),
+              step.durationMinutes != null
+                ? h('span', { className: 'beer-sched-sest' }, scheduleEstimateLabel(step.durationMinutes))
+                : null,
+              step.when?.kind === 'plan'
+                ? h('span', { className: 'beer-chip warn' }, step.scheduled === today ? '已排到今天' : `已排到${schedWeekday(step.scheduled)}`)
+                : null,
+              h('button', {
+                type: 'button',
+                className: 'beer-sched-splan',
+                disabled: busy,
+                title: step.scheduled ? '改计划日 / 取消排期' : '把这一步排到某天',
+                onClick: () => onPlanToggle(step.id),
+              }, step.scheduled ? '改期…' : '排到…')),
+            planOpen === step.id
+              ? h(SchedulePlanMenu, {
+                item: step, options: planOptions, busy, onPick: onPlanPick,
+              })
+              : null)))
+        : null
+
+      // 月历选中的日期（#52）：事项自己的日期或任一步骤排在这天时高亮。
+      const onSelectedDay = Boolean(selectedDate) && scheduleItemOnDate(item, selectedDate)
+
+      return h('div', { className: 'beer-sched-itemwrap' },
+        h('div', {
+          className: 'beer-sched-item' + (item.done ? ' done' : '') + (item.past ? ' past' : '')
+            + (onSelectedDay ? ' selected' : ''),
+        },
+          event
+            ? h('span', { className: 'beer-sched-dot', title: '有具体时刻，不需要勾选' }, '·')
+            : h('button', {
+              type: 'button',
+              role: 'checkbox',
+              'aria-checked': item.done,
+              'aria-label': item.done ? '取消完成' : '标记完成',
+              title: item.done ? '取消完成' : '完成（写回 日程.md）',
+              className: 'beer-sched-box' + (item.done ? ' on' : ''),
+              disabled: busy,
+              onClick: () => onToggle(item),
+            }, item.done ? '✓' : ''),
+          item.when?.day
+            ? h('span', { className: scheduleWhenClass(item) },
+              h('span', { className: 'beer-sched-day' }, item.when.day), item.when.time)
+            : h('span', { className: scheduleWhenClass(item) }, item.when?.label ?? ''),
+          h('div', { className: 'beer-sched-body' },
+            h('div', { className: 'beer-sched-title' },
+              item.title || '（无标题）',
+              item.parentTitle
+                ? h('span', { className: 'beer-sched-stepctx' }, ` · ${item.parentTitle} 第 ${item.stepIndex} 步`)
+                : null),
+            stepRows,
+            meta.length ? h('div', { className: 'beer-sched-meta' }, meta) : null),
+          planButton,
+          h('button', {
+            type: 'button', className: 'beer-sched-del', title: '删除这一条和它的子步骤',
+            disabled: busy, onClick: () => onDelete(item),
+          }, '删除')),
+        planOpen === item.id
+          ? h(SchedulePlanMenu, {
+            item, options: planOptions, busy, onPick: onPlanPick,
+          })
+          : null)
+    }
+
+    function ScheduleCard({
+      onError, onOpenArticle, onChanged, onSayInChat, selectedDate, onSelectDate, refreshKey = 0,
+    }) {
+      const [data, setData] = useState(null)
+      const [view, setView] = useState('timeline')
+      const [showLater, setShowLater] = useState(false)
+      const [busyId, setBusyId] = useState('')
+      const [planFor, setPlanFor] = useState('')
+      const [quickText, setQuickText] = useState('')
+      const [adding, setAdding] = useState(false)
+      const rootRef = useRef(null)
 
       const load = useCallback(async () => {
         try {
-          // ensure=1：每天第一次打开时，今天还没有简报就让服务端生成；已有文件不重复调模型。
-          // 必须等它返回再读 /topics，并发读会拿到生成前的空简报，预览显示「还没有」。
-          const nextHome = await api('GET', '/home?ensure=1')
-          const nextTopics = await api('GET', '/topics')
-          setHome(nextHome)
-          setTopics(nextTopics)
+          setData(await api('GET', '/schedule'))
           onError('')
         } catch (e) { onError(e.message) }
       }, [onError])
-      useEffect(() => { load() }, [load])
+      // refreshKey 变化时重新拉一次：首页「识别到日程」接受新条目后左栏立刻能看到。
+      useEffect(() => { load() }, [load, refreshKey])
 
-      const regenerate = async () => {
-        if (busy) return
-        if (topics?.exists && !window.confirm('重新生成今天的选题简报？会覆盖当天这份文件。')) return
-        setBusy(true)
-        setHint('')
+      // 快速添加（#50）：回车保存到 日程.md，来源「快速添加」。服务端解析日期 / 时刻，
+      // 解析不了日期也照样存一条没有日期的待办。
+      const quickAdd = async () => {
+        const text = quickText.trim()
+        if (!text || adding) return
+        setAdding(true)
         try {
-          await api('POST', '/home/brief/regenerate')
-          setHint('已重新生成今天的选题简报。')
-          onError('')
+          await api('POST', '/schedule/quick-add', { text })
+          setQuickText('')
           await load()
-        } catch (e) { onError(e.message) } finally { setBusy(false) }
+          onChanged?.()
+          onError('')
+        } catch (e) { onError(e.message) } finally { setAdding(false) }
       }
+
+      // 「在对话里说」只把输入放进右侧对话草稿，不发送、不自动问 AI。
+      const sayInChat = () => {
+        const text = quickText.trim()
+        if (text) onSayInChat?.(text)
+      }
+
+      const quickAddRow = h('form', {
+        className: 'beer-sched-add',
+        onSubmit: event => { event.preventDefault(); quickAdd() },
+      },
+        h('input', {
+          type: 'text',
+          value: quickText,
+          placeholder: '＋ 加一条，比如「周五前交稿」「明天 14:00 开会」「做一期讲解视频，约 6 小时」，回车保存',
+          'aria-label': '快速添加日程',
+          disabled: adding,
+          onChange: event => setQuickText(event.target.value),
+        }),
+        h('button', {
+          type: 'button',
+          className: 'beer-btn',
+          disabled: !quickText.trim() || !onSayInChat,
+          title: '把这句话放进右侧对话草稿，不自动发送',
+          onClick: sayInChat,
+        }, '在对话里说'))
+
+      // 小月历点到某天（#52）：切回按时间视图，必要时展开「以后」，然后滚到第一条匹配的事项。
+      useEffect(() => {
+        if (!selectedDate) return
+        setView('timeline')
+        const inLater = (data?.groups ?? []).some(group =>
+          group.key === 'later' && group.items.some(item => scheduleItemOnDate(item, selectedDate)))
+        if (inLater) setShowLater(true)
+      }, [selectedDate, data])
+
+      useEffect(() => {
+        if (!selectedDate) return
+        const node = rootRef.current?.querySelector?.('.beer-sched-item.selected')
+        if (node && typeof node.scrollIntoView === 'function') node.scrollIntoView({ block: 'nearest' })
+      }, [selectedDate, view, showLater, data])
+
+      const toggle = async item => {
+        if (busyId) return
+        setBusyId(item.id)
+        try {
+          await api('POST', '/schedule/items/complete', {
+            id: item.id, done: !item.done, baseVersion: data.version,
+          })
+          await load()
+          onChanged?.()
+          onError('')
+        } catch (e) { onError(e.message) } finally { setBusyId('') }
+      }
+
+      const remove = async item => {
+        if (busyId) return
+        const label = item.title || '这一条'
+        if (!window.confirm(`删除「${label}」？\n日程.md 里这一行和它缩进的子步骤会一起删掉。`)) return
+        setBusyId(item.id)
+        try {
+          await api('POST', '/schedule/items/delete', { id: item.id, baseVersion: data.version })
+          await load()
+          onChanged?.()
+          onError('')
+        } catch (e) { onError(e.message) } finally { setBusyId('') }
+      }
+
+      // 「排到…」：设置 / 清除 ⏳ 计划日；父事项和子步骤都走同一对接口。
+      const pickPlan = async (item, date) => {
+        if (busyId) return
+        setBusyId(item.id)
+        try {
+          await api('POST', date ? '/schedule/items/schedule' : '/schedule/items/unschedule',
+            date
+              ? { id: item.id, scheduled: date, baseVersion: data.version }
+              : { id: item.id, baseVersion: data.version })
+          setPlanFor('')
+          await load()
+          onChanged?.()
+          onError('')
+        } catch (e) { onError(e.message) } finally { setBusyId('') }
+      }
+
+      const togglePlan = id => setPlanFor(current => current === id ? '' : id)
+
+      const viewSwitch = h('div', { className: 'beer-sched-seg', role: 'tablist', 'aria-label': '日程视图' },
+        [['timeline', '按时间'], ['all', '全部'], ['done', '已完成']].map(([key, label]) => h('button', {
+          key, type: 'button', role: 'tab', 'aria-selected': view === key,
+          className: view === key ? 'on' : '', onClick: () => setView(key),
+        }, label)))
+
+      if (!data) {
+        return h('div', { ref: rootRef, className: 'beer-home-card beer-sched' },
+          h('div', { className: 'beer-sched-hd' }, h('b', null, '日程与待办'), viewSwitch),
+          quickAddRow,
+          h('div', { className: 'beer-sched-empty' }, '加载中…'))
+      }
+
+      const planOptions = schedulePlanOptions(data)
+      const renderItems = items => items.map(item => h(ScheduleItem, {
+        key: item.id,
+        item,
+        busy: Boolean(busyId),
+        today: data.today,
+        planOpen: planFor,
+        planOptions,
+        onPlanToggle: togglePlan,
+        onPlanPick: pickPlan,
+        onToggle: toggle,
+        onDelete: remove,
+        onOpenArticle,
+        selectedDate,
+      }))
+      const selectedMatched = !selectedDate
+        || (data.items ?? []).some(item => scheduleItemOnDate(item, selectedDate))
+
+      const activeGroups = (data.groups ?? []).filter(group => group.count > 0)
+      const allEntries = data.entries ?? data.items ?? []
+      const emptyText = data.exists
+        ? '今天没有日程。'
+        : '库里还没有 日程.md。在 Obsidian 里写一条，或在对话里让 AI 记一条。'
+      let body
+      if (view === 'done') {
+        body = data.done?.length
+          ? h('div', { className: 'beer-sched-group' },
+            h('div', { className: 'beer-sched-gt' }, '已完成', h('span', { className: 'muted' }, `· ${data.done.length}`)),
+            renderItems(data.done))
+          : h('div', { className: 'beer-sched-empty' }, data.exists ? '还没有完成的事项。' : emptyText)
+      } else if (view === 'all') {
+        body = allEntries.length
+          ? h('div', { className: 'beer-sched-group' },
+            h('div', { className: 'beer-sched-gt' }, '全部未完成', h('span', { className: 'muted' }, `· ${allEntries.length}`)),
+            renderItems(allEntries))
+          : h('div', { className: 'beer-sched-empty' }, emptyText)
+      } else {
+        body = activeGroups.length
+          ? h('div', { className: 'beer-sched-groups' }, activeGroups.map(group => {
+            const later = group.key === 'later'
+            const unscheduled = group.key === 'unscheduled'
+            const collapsed = later && !showLater
+            const head = h(later ? 'button' : 'div', {
+              key: 'head',
+              type: later ? 'button' : undefined,
+              className: 'beer-sched-gt' + (group.key === 'overdue' ? ' bad' : '') + (later ? ' click' : ''),
+              onClick: later ? () => setShowLater(value => !value) : undefined,
+            },
+            group.label,
+            h('span', { className: 'muted' }, `· ${group.count}`),
+            unscheduled && group.subtitle
+              ? h('span', { className: 'beer-sched-sub' }, group.subtitle)
+              : null,
+            later ? h('span', { className: 'muted' }, collapsed ? '（默认收起，点开）' : '（收起）') : null)
+            return h('div', { key: group.key, className: 'beer-sched-group' + (unscheduled ? ' nodate' : '') },
+              head, collapsed ? null : renderItems(group.items))
+          }))
+          : h('div', { className: 'beer-sched-empty' }, emptyText)
+      }
+
+      return h('div', { ref: rootRef, className: 'beer-home-card beer-sched' },
+        h('div', { className: 'beer-sched-hd' },
+          h('b', null, '日程与待办'),
+          h('span', { className: 'beer-chip' }, String(allEntries.length)),
+          selectedDate && h('button', {
+            type: 'button',
+            className: 'beer-sched-jump',
+            title: '再点一次这个日期，或点这里取消',
+            onClick: () => onSelectDate?.(selectedDate),
+          }, `跳到 ${scheduleDayLabel(selectedDate)} ✕`),
+          viewSwitch),
+        quickAddRow,
+        selectedDate && !selectedMatched
+          && h('div', { className: 'beer-sched-empty' }, `选中的 ${scheduleDayLabel(selectedDate)} 没有未完成的日程。`),
+        body)
+    }
+
+    // ---- 首页小月历（#52）：只读 GET /schedule 的 calendar，和左侧列表共享选中的日期 ----
+    // 不自己解析 日程.md：点和红字全部由服务端 calendarMonth 从同一份事项算出。
+
+    const CAL_WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
+
+    function shiftCalendarMonth(year, month, delta) {
+      const index = year * 12 + month - 1 + delta
+      return { year: Math.floor(index / 12), month: index % 12 + 1 }
+    }
+
+    function CalendarCard({ selectedDate, onSelectDate, refreshKey, onError }) {
+      const [month, setMonth] = useState('') // '' = 今天所在的月份
+      const [calendar, setCalendar] = useState(null)
+
+      useEffect(() => {
+        let alive = true
+        const load = async () => {
+          try {
+            const data = await api('GET', '/schedule' + (month ? `?month=${month}` : ''))
+            if (alive) {
+              setCalendar(data.calendar ?? null)
+              onError('')
+            }
+          } catch (e) {
+            if (alive) onError(e.message)
+          }
+        }
+        load()
+        return () => { alive = false }
+      }, [month, refreshKey, onError])
+
+      if (!calendar) {
+        return h('div', { className: 'beer-home-card beer-cal' },
+          h('div', { className: 'beer-cal-hd' }, h('b', null, '月历')),
+          h('div', { className: 'beer-home-empty' }, '加载中…'))
+      }
+
+      const go = delta => {
+        const next = shiftCalendarMonth(calendar.year, calendar.month, delta)
+        setMonth(`${next.year}-${String(next.month).padStart(2, '0')}`)
+      }
+      const choose = day => {
+        if (!day.inMonth) setMonth(day.date.slice(0, 7))
+        onSelectDate?.(day.date)
+      }
+      const dayTitle = day => [day.date, day.event ? '有时刻' : '', day.due ? '有截止' : '',
+        day.overdue ? '有逾期' : ''].filter(Boolean).join(' · ')
+
+      return h('div', { className: 'beer-home-card beer-cal' },
+        h('div', { className: 'beer-cal-hd' },
+          h('b', null, `${calendar.year} 年 ${calendar.month} 月`),
+          h('div', { className: 'beer-cal-nav' },
+            h('button', { type: 'button', title: '上个月', 'aria-label': '上个月', onClick: () => go(-1) }, '‹'),
+            h('button', { type: 'button', title: '下个月', 'aria-label': '下个月', onClick: () => go(1) }, '›'))),
+        h('div', { className: 'beer-cal-grid' },
+          CAL_WEEKDAYS.map(name => h('span', { key: 'h-' + name, className: 'beer-cal-h' }, name)),
+          calendar.days.map(day => h('button', {
+            key: day.date,
+            type: 'button',
+            title: dayTitle(day),
+            className: 'beer-cal-day'
+              + (day.inMonth ? '' : ' out')
+              + (day.today ? ' today' : '')
+              + (day.overdue ? ' overdue' : '')
+              + (selectedDate === day.date ? ' selected' : ''),
+            onClick: () => choose(day),
+          },
+            String(day.day),
+            (day.event || day.due) && h('span', { className: 'beer-cal-dots' },
+              day.event && h('i', { className: 'ev' }),
+              day.due && h('i', { className: 'dl' }))))),
+        h('div', { className: 'beer-cal-legend' },
+          h('span', null, h('i', { className: 'ev' }), '有时刻'),
+          h('span', null, h('i', { className: 'dl' }), '截止'),
+          h('span', { className: 'late' }, '红字 = 有逾期')))
+    }
+
+
+    // ---- 识别到日程（#55）：对话里解析出来、还没确认的日程，固定在右栏最上面 ----
+    // 数据来自 GET /schedule/pending（服务端按当前库过滤 schedule-pending 状态）。
+    // 卡片每 25 秒自己刷新一次，所以对话里刚解析出的日程不用手动刷新首页就会出现。
+    // ✕ 只隐藏当前这批条目的编号（新识别结果还会出现），不删服务端状态；
+    // 「改一下」先 dismiss 旧条目再放复述进对话草稿，旧版本之后不能再被接受。
+
+    const PENDING_WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+    /** 2026-11-20 → 「11 月 20 日 周五」；按本机时区解析，不经过 UTC。 */
+    function pendingDateText(value) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value ?? ''))
+      if (!m) return value || ''
+      const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+      return `${Number(m[2])} 月 ${Number(m[3])} 日 ${PENDING_WEEKDAYS[date.getDay()]}`
+    }
+
+    /** 同时有计划日和截止日时两个都写出来，不能因为有时刻就把截止日藏掉。 */
+    function pendingWhen(item) {
+      const clock = item.time ? item.time + (item.endTime ? `–${item.endTime}` : '') : ''
+      const plan = item.scheduled ? pendingDateText(item.scheduled) : ''
+      const due = item.due ? pendingDateText(item.due) : ''
+      if (plan && due) return `计划 ${plan}${clock ? ' ' + clock : ''}，${due} 截止`
+      if (clock && plan) return `计划 ${plan} ${clock}`
+      if (clock && due) return `${due} ${clock}`
+      if (clock) return `${clock}（还没定哪天）`
+      if (plan) return `计划 ${plan}`
+      if (due) return `${due} 截止`
+      if (item.duration) return `没排期（约 ${item.duration}）`
+      return '没排期'
+    }
+
+    /** 地点只认服务端写进条目的顶层 location（#55 起 loc= 字段）；旧字段不再猜。 */
+    function pendingLocation(item) {
+      return typeof item.location === 'string' ? item.location.trim() : ''
+    }
+
+    /** 提醒文案由服务端 pendingReminderLabel 算好（default / 30m / off），客户端只渲染。 */
+    function pendingReminder(item) {
+      return typeof item.reminderLabel === 'string' ? item.reminderLabel : ''
+    }
+
+    /** 「改一下」带进对话的内容：把这次识别结果原样复述，让 AI 在草稿里改。 */
+    function pendingRestatement(entry) {
+      const lines = (Array.isArray(entry.items) ? entry.items : []).map(item => {
+        const tags = Array.isArray(item.tags) && item.tags.length ? `（#${item.tags.join(' #')}）` : ''
+        const location = pendingLocation(item)
+        return `· ${pendingWhen(item)} —— ${item.title || '(无标题)'}${tags}`
+          + (location ? `（地点 ${location}）` : '')
+      })
+      return [
+        '帮我改一下这条识别到、还没加入日程的安排（先别建，改完再复述给我确认）：',
+        ...lines,
+      ].join('\n')
+    }
+
+    function PendingScheduleCard({ onError, onAccepted, onRestate }) {
+      const [entries, setEntries] = useState([])
+      // 只隐藏「点 ✕ 时已经显示过」的条目编号；之后新识别出的条目照常出现。
+      const [hiddenIds, setHiddenIds] = useState([])
+      const [busyId, setBusyId] = useState('')
+      const seq = useRef(0)
+
+      const load = useCallback(async () => {
+        const mine = ++seq.current
+        try {
+          const data = await api('GET', '/schedule/pending')
+          // 轮询 / 接受后的刷新可能乱序返回，只认最后一次发出的请求。
+          if (mine !== seq.current) return
+          setEntries(Array.isArray(data.entries) ? data.entries : [])
+        } catch (e) {
+          if (mine === seq.current) onError(e.message)
+        }
+      }, [onError])
+
+      useEffect(() => {
+        load()
+        const timer = setInterval(load, 25000)
+        return () => clearInterval(timer)
+      }, [load])
+
+      const dropEntry = id => setEntries(list => list.filter(item => item.id !== id))
+
+      /** 接受 / 忽略共用的 404 处理：已经在别处处理过就从卡片消失，不当成失败。 */
+      const handleEntryError = (e, id) => {
+        if (e.status === 404) {
+          dropEntry(id)
+          return
+        }
+        onError(e.message)
+      }
+
+      const accept = async entry => {
+        if (busyId) return
+        setBusyId(entry.id)
+        try {
+          const result = await api('POST', '/schedule/pending/accept', { id: entry.id })
+          dropEntry(entry.id)
+          onError('')
+          onAccepted?.(result)
+        } catch (e) {
+          handleEntryError(e, entry.id)
+        } finally {
+          setBusyId('')
+          load()
+        }
+      }
+
+      const dismiss = async entry => {
+        if (busyId) return
+        setBusyId(entry.id)
+        try {
+          await api('POST', '/schedule/pending/dismiss', { id: entry.id })
+          dropEntry(entry.id)
+          onError('')
+        } catch (e) {
+          handleEntryError(e, entry.id)
+        } finally {
+          setBusyId('')
+        }
+      }
+
+      // 「改一下」先把这条从服务端待确认状态移除，再把复述放进草稿；
+      // 这样用户之后不能又把旧版本「加入日程」，只能接受 AI 改完后的新复述。
+      const restate = async entry => {
+        if (busyId) return
+        setBusyId(entry.id)
+        try {
+          try {
+            await api('POST', '/schedule/pending/dismiss', { id: entry.id })
+          } catch (e) {
+            // 已经不在待确认里（404）说明旧版本也不可能再被接受，继续放复述。
+            if (e.status !== 404) {
+              onError(e.message)
+              return
+            }
+          }
+          dropEntry(entry.id)
+          const text = pendingRestatement(entry)
+          if (onRestate) {
+            onRestate(text)
+            onError('')
+          } else {
+            onError('没有可用对话，先把这条复制到对话里改。')
+          }
+        } finally {
+          setBusyId('')
+        }
+      }
+
+      const hiddenSet = new Set(hiddenIds)
+      const visible = entries.filter(entry => !hiddenSet.has(entry.id))
+      if (visible.length === 0) return null
+
+      const total = visible.reduce((sum, entry) => sum + (Array.isArray(entry.items) ? entry.items.length : 0), 0)
+      return h('div', { className: 'beer-found' },
+        h('div', { className: 'beer-found-hd' },
+          h('span', { className: 'beer-found-pulse', title: '待确认' }),
+          h('b', null, `识别到 ${total} 个日程`),
+          h('span', { className: 'beer-chip warn' }, '待确认'),
+          h('button', {
+            type: 'button', className: 'beer-found-x',
+            title: '收起这些识别结果（本次打开不再显示这些；新识别结果还会出现，不删除服务端状态）',
+            onClick: () => setHiddenIds(ids => [...new Set([...ids, ...visible.map(entry => entry.id)])]),
+          }, '✕')),
+        visible.map(entry => {
+          const items = Array.isArray(entry.items) ? entry.items : []
+          const entrySource = entry.source || items.find(item => item.source)?.source || '对话'
+          return h('div', { key: entry.id, className: 'beer-found-entry' },
+            items.map((item, index) => {
+              const location = pendingLocation(item)
+              const reminder = pendingReminder(item)
+              return h('div', { key: entry.id + '-' + index, className: 'beer-found-item' },
+                h('div', { className: 'beer-found-title' },
+                  h('b', null, item.title || '(无标题)'),
+                  (Array.isArray(item.tags) ? item.tags : []).map(tag => h('span', { key: 'tag-' + tag, className: 'beer-chip' }, tag))),
+                h('div', { className: 'beer-found-kv' },
+                  h('span', null, '时间'), h('span', null, pendingWhen(item)),
+                  location ? h('span', null, '地点') : null,
+                  location ? h('span', null, location) : null,
+                  reminder ? h('span', null, '提醒') : null,
+                  reminder ? h('span', null, '✉ ' + reminder) : null,
+                  h('span', null, '来源'), h('span', null, item.source || entrySource)))
+            }),
+            h('div', { className: 'beer-found-acts' },
+              h('button', {
+                type: 'button', className: 'beer-btn pri', disabled: Boolean(busyId),
+                onClick: () => accept(entry),
+              }, busyId === entry.id ? '加入中…' : '加入日程'),
+              h('button', {
+                type: 'button', className: 'beer-btn', disabled: Boolean(busyId),
+                onClick: () => restate(entry),
+              }, busyId === entry.id ? '改一下…' : '改一下'),
+              h('button', {
+                type: 'button', className: 'beer-btn ghost', disabled: Boolean(busyId),
+                onClick: () => dismiss(entry),
+              }, '忽略')))
+        }),
+        h('div', { className: 'beer-muted' }, '还没加入日程。加入后才写进 日程.md；改一下只放进对话草稿，不会自动发送。'))
+    }
+
+    // ---- 首页：两栏骨架（左「日程与待办」，右「识别到日程 → 小月历 → 等你处理 → 今天的选题 → 正在写 → 录音」） ----
+    // 首屏只等快速的 GET /home；GET /home?ensure=1 在首屏之后才发，生成中 / 失败都只影响
+    // 「今天的选题」卡片。每天第一次打开自动生成简报的逻辑不变。没有会话时照常可用。
+
+    const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+    /** 2026-11-12 → 「11 月 12 日 周四」；按本机时区解析，不经过 UTC。 */
+    function fmtHomeDate(iso) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''))
+      if (!m) return iso || ''
+      const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+      return `${Number(m[2])} 月 ${Number(m[3])} 日 ${WEEKDAYS[date.getDay()]}`
+    }
+
+    // ---- 等你处理（#48）：自包含的一块，首页布局（#47）只负责把它放到右侧一列。
+    // 类型图标：稿 = 成稿待确认，发 = 已确认还没发，冲 = 编辑冲突；按钮写具体动作。
+
+    const pad2 = n => String(n).padStart(2, '0')
+    const clockOf = date => `${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+    const startOfLocalDay = date => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+
+    /** 状态时间 → 「今天 10:30」「昨天 21:40」「11月3日 09:00」。 */
+    function formatStatusTime(value) {
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return ''
+      const now = new Date()
+      const days = Math.round((startOfLocalDay(now) - startOfLocalDay(date)) / 86_400_000)
+      if (days <= 0) return `今天 ${clockOf(date)}`
+      if (days === 1) return `昨天 ${clockOf(date)}`
+      if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}月${date.getDate()}日 ${clockOf(date)}`
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${clockOf(date)}`
+    }
+
+    /** 发现时间 → 「刚刚」「10 分钟前」「3 小时前」「昨天 21:40」「11月3日」。 */
+    function formatRelativeTime(value) {
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return ''
+      const now = new Date()
+      const ms = now.getTime() - date.getTime()
+      if (ms < 60_000) return '刚刚'
+      if (ms < 3_600_000) return `${Math.floor(ms / 60_000)} 分钟前`
+      if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)} 小时前`
+      const days = Math.round((startOfLocalDay(now) - startOfLocalDay(date)) / 86_400_000)
+      if (days === 1) return `昨天 ${clockOf(date)}`
+      if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}月${date.getDate()}日`
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+    }
+
+    function formatWords(value) {
+      return String(Number.isFinite(value) ? value : 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    }
+
+    function WaitingRow({ icon, tone, title, titleAttr, sub, platforms, action, actionClass, actionTitle, onAction }) {
+      return h('div', { className: 'beer-wait-row' },
+        h('span', { className: 'beer-wait-ic' + (tone ? ' ' + tone : '') }, icon),
+        h('div', { className: 'beer-wait-bd' },
+          h('div', { className: 'beer-wait-tt', title: titleAttr || title }, title),
+          h('div', { className: 'beer-wait-sub' }, sub),
+          platforms && platforms.length > 0 && h('div', { className: 'beer-wait-plats' },
+            platforms.map(platform => h('span', {
+              key: platform.platform,
+              className: 'beer-wait-plat' + (platform.state === '已生成' ? ' y' : platform.state === '待发' ? ' p' : ' n'),
+            }, platform.state === '已生成'
+              ? `${platform.platform} ✓ ${platform.state}`
+              : `${platform.platform} ${platform.state}`)))),
+        action && h('button', {
+          type: 'button',
+          className: 'beer-btn beer-wait-act' + (actionClass ? ' ' + actionClass : ''),
+          title: actionTitle,
+          onClick: onAction,
+        }, action))
+    }
+
+    function WaitingCard({ tasks, onOpenTab, onOpenConflict }) {
+      const pending = tasks?.publishPending ?? []
+      const conflicts = tasks?.editConflicts ?? []
+      const waitingFinals = pending.filter(item => item.status === '成稿')
+      const longest = waitingFinals.reduce((max, item) => Math.max(max, item.waitedDays || 0), 0)
+      const count = pending.length + conflicts.length
+      return h('div', { className: 'beer-wait' },
+        h('div', { className: 'beer-home-card-hd' },
+          h('b', null, '等你处理'),
+          h('span', { className: 'beer-chip' + (count ? ' bad' : '') }, String(count)),
+          waitingFinals.length > 0 && h('span', { className: 'beer-muted beer-wait-longest' },
+            `最久的已等 ${longest} 天`)),
+        count === 0 && h('div', { className: 'beer-home-empty' }, '今天没有要处理的事。'),
+        pending.map(item => item.status === '已确认'
+          ? h(WaitingRow, {
+            key: 'confirmed-' + item.path,
+            icon: '发',
+            tone: 'ok',
+            title: item.title,
+            titleAttr: item.path,
+            sub: ['已确认，还没发出 · ', formatStatusTime(item.statusTime)
+              ? `${formatStatusTime(item.statusTime)} 确认`
+              : '确认时间未知'],
+            platforms: item.platforms,
+            action: '去发布',
+            actionTitle: '去发布页发布这篇已确认的文章',
+            onAction: () => onOpenTab('publish'),
+          })
+          : h(WaitingRow, {
+            key: 'final-' + item.path,
+            icon: '稿',
+            tone: 'warn',
+            title: item.title,
+            titleAttr: item.path,
+            sub: [
+              '成稿待确认 · ',
+              `${formatWords(item.words)} 字 · `,
+              item.waitedLong
+                ? h('b', { key: 'waited' }, `等了 ${item.waitedDays} 天`)
+                : `等了 ${item.waitedDays} 天`,
+            ],
+            platforms: item.platforms,
+            action: '确认',
+            actionClass: 'pri',
+            actionTitle: '去发布页确认并发布这篇成稿',
+            onAction: () => onOpenTab('publish'),
+          })),
+        conflicts.map(item => h(WaitingRow, {
+          key: 'conflict-' + item.path,
+          icon: '冲',
+          tone: 'bad',
+          title: item.path,
+          sub: ['编辑冲突 · Obsidian 和 Beer 各改了一份',
+            formatRelativeTime(item.detectedAt) ? ` · ${formatRelativeTime(item.detectedAt)}` : ''],
+          action: '对比',
+          actionTitle: '打开这份文件对比两个版本',
+          onAction: () => onOpenConflict(item.path),
+        })))
+    }
+
+    function HomeView({
+      narrow, onOpenTab, onOpenArticle, onOpenConflict, onError, onSayInChat, onRestate,
+    }) {
+      const [home, setHome] = useState(null)
+      const [ensuring, setEnsuring] = useState(true)
+      const [ensureError, setEnsureError] = useState('')
+      // #52：小月历和左侧「日程与待办」共用选中的日期；再点同一天清除。
+      const [selectedDate, setSelectedDate] = useState('')
+      // 勾选 / 删除 / 接受「识别到日程」后让小月历重新算点和红字，也让左栏日程卡立刻重读。
+      const [scheduleRefresh, setScheduleRefresh] = useState(0)
+      const selectDate = date => setSelectedDate(current => (current === date ? '' : date))
+
+      useEffect(() => {
+        let alive = true
+        setEnsuring(true)
+        setEnsureError('')
+        const load = async () => {
+          try {
+            const first = await api('GET', '/home')
+            if (!alive) return
+            setHome(first)
+            onError('')
+          } catch (e) {
+            if (alive) onError(e.message)
+            return
+          }
+          // 首屏已经画出来了：ensure 慢慢生成，成功就整页补一次，失败只记在选题卡片里。
+          try {
+            const ensured = await api('GET', '/home?ensure=1')
+            if (alive) setHome(ensured)
+          } catch (e) {
+            if (alive) setEnsureError(e.message)
+          } finally {
+            if (alive) setEnsuring(false)
+          }
+        }
+        load()
+        return () => { alive = false }
+      }, [onError])
 
       if (!home) return h('div', { className: 'beer-muted' }, '加载中…')
 
-      const { tasks, recordings, week, rules } = home
+      const { tasks, recordings, week } = home
       const pending = tasks.publishPending ?? []
       const conflicts = tasks.editConflicts ?? []
-      const openCount = pending.length + (tasks.brief.generatedToday ? 0 : 1) + conflicts.length
-
-      const taskButton = (key, chip, chipClass, title, titleAttr, onClick) => h('button', {
-        key, type: 'button', className: 'beer-home-task', title: titleAttr, onClick,
-      },
-        h('span', { className: 'beer-chip' + (chipClass ? ' ' + chipClass : '') }, chip),
-        h('b', null, title),
-        h('span', { className: 'go' }, '去处理 →'))
+      const writing = tasks.writing ?? []
+      const brief = tasks.brief
+      const openCount = pending.length + conflicts.length
+      const briefError = ensureError || brief.error || ''
+      const processing = recordings.processing ?? []
+      const showRecording = processing.length > 0 || recordings.failedCount > 0
+      // #49：日程数字来自 GET /home 的 schedule.summary；完整列表由卡片自己读 /schedule。
+      const scheduleSummary = home.schedule?.summary ?? { today: 0, overdue: 0, dueThisWeek: 0, unscheduled: 0 }
+      // 勾选 / 删除 / 接受识别结果后刷新顶部汇总句（卡片自己的列表已经刷新过），
+      // 并让小月历重新算点和红字、左栏 ScheduleCard 重新读 日程.md。
+      const refreshHome = async () => {
+        try { setHome(await api('GET', '/home')) } catch {}
+        setScheduleRefresh(value => value + 1)
+      }
+      // 接受一条识别结果后：顶部汇总重算，左栏 ScheduleCard 也立刻刷新。
+      const afterPendingAccepted = () => {
+        refreshHome()
+      }
 
       return h('div', { className: 'beer-home' + (narrow ? ' narrow' : '') },
-        h('div', { className: 'beer-home-tile wide' },
-          h('div', { className: 'beer-home-row' },
-            h('b', null, '等你处理'),
-            h('span', { className: 'beer-chip' + (openCount ? ' bad' : '') }, String(openCount))),
-          openCount === 0 && h('div', { className: 'beer-muted' }, '今天没有要处理的事。'),
-          pending.map(item => taskButton('publish-' + item.path, item.status,
-            item.status === '成稿' ? 'warn' : '', item.title, item.path, () => onOpenTab('publish'))),
-          taskButton('brief',
-            tasks.brief.generatedToday ? '新选题简报' : '还没有简报',
-            tasks.brief.generatedToday ? '' : 'warn',
-            tasks.brief.generatedToday ? `${home.date} 的选题简报已生成` : '今天还没有选题简报',
-            tasks.brief.path,
-            () => onOpenTab('topics')),
-          conflicts.map(item => taskButton('conflict-' + item.path, '冲突', 'bad',
-            item.path, item.detectedAt, () => onOpenConflict(item.path)))),
-        h('div', { className: 'beer-home-tile' },
-          h('div', { className: 'beer-home-row' },
-            h('b', null, '录音'),
-            h('span', { className: 'beer-muted', style: { marginLeft: 'auto' } },
-              recordings.online ? '家里在线' : '家里暂时连不上')),
-          !recordings.online
-            ? h('div', { className: 'beer-err', style: { margin: 0 } }, recordings.error || '家里暂时连不上')
-            : (recordings.processing.length === 0 && recordings.failedCount === 0
-              ? h('div', { className: 'beer-muted' }, '没有正在处理的录音。')
-              : null),
-          recordings.online && recordings.processing.map(rec => h('div', { key: rec.id, className: 'beer-home-rec' },
-            h('div', { className: 'beer-home-row' },
-              h('b', { title: rec.filename }, rec.filename || '未命名录音'),
-              h('span', { className: 'beer-muted', style: { marginLeft: 'auto' } },
-                `${rec.step || '处理中'} ${rec.progress}%`)),
-            h('div', { className: 'beer-bar' },
-              h('i', { style: { width: Math.max(2, rec.progress) + '%' } })))),
-          recordings.online && recordings.failedCount > 0 &&
-            h('div', { className: 'beer-chip bad' }, `${recordings.failedCount} 条失败`),
-          h('button', { className: 'beer-linkbtn', onClick: () => onOpenTab('recordings') }, '去录音页 →')),
-        h('div', { className: 'beer-home-tile' },
-          h('div', { className: 'beer-home-row' },
-            h('b', null, '本周产出'),
-            h('span', { className: 'beer-muted', style: { marginLeft: 'auto' } }, `周一起 · ${week.since}`)),
-          h('div', { className: 'beer-home-stats' },
-            h(HomeStat, { value: week.materials, label: '新素材' }),
-            h(HomeStat, { value: week.drafts, label: '成稿' }),
-            h(HomeStat, { value: week.published, label: '已发布' }))),
-        h('div', { className: 'beer-home-tile' },
-          h('div', { className: 'beer-home-row' },
-            h('b', null, '规则积累'),
-            h('span', { className: 'beer-chip', style: { marginLeft: 'auto' } }, rules.enabled ? '已开启' : '未开启')),
-          h('div', { className: 'beer-home-stats' },
-            h(HomeStat, { value: rules.hard, label: '硬规则' }),
-            h(HomeStat, { value: rules.soft, label: '软规则' }),
-            h(HomeStat, { value: rules.pending, label: '待转正' })),
-          h('button', { className: 'beer-linkbtn', onClick: () => onOpenTab('rules') }, '去规则页 →')),
-        h('div', { className: 'beer-home-tile full' },
-          h('div', { className: 'beer-home-row' },
-            h('b', null, '今天的选题简报'),
-            h('span', {
-              className: 'beer-muted',
-              style: { flex: '1 1 160px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-              title: tasks.brief.path,
-            }, tasks.brief.path),
-            h('button', { className: 'beer-btn pri', onClick: regenerate, disabled: busy },
-              busy ? '生成中…' : (topics?.exists ? '重新生成' : '生成今天的简报'))),
-          hint && h('div', { className: 'beer-muted' }, hint),
-          tasks.brief.error && h('div', { className: 'beer-muted' },
-            `今天的选题简报没能自动生成：${tasks.brief.error}；可以点上面的按钮重试。`),
-          topics?.content
-            ? h('div', { className: 'beer-home-brief' },
-              h(MarkdownPreview, { source: withoutFrontmatter(topics.content) }))
-            : h('div', { className: 'beer-muted' }, '今天还没有选题简报，点上面的按钮生成。')))
+        h('div', { className: 'beer-home-head' },
+          h('h1', null, fmtHomeDate(home.date)),
+          h('span', { className: 'beer-home-sum' },
+            `今天 ${scheduleSummary.today} 件 · `,
+            h('b', null, `${scheduleSummary.overdue} 件逾期`),
+            ` · 本周还有 ${scheduleSummary.dueThisWeek} 件到期 · `,
+            openCount > 0 ? h('b', null, `${openCount} 件等你处理`) : `${openCount} 件等你处理`,
+            ` · ${scheduleSummary.unscheduled} 件没排期`),
+          h('span', { className: 'beer-home-week' },
+            `本周产出：新素材 ${week.materials} · 成稿 ${week.drafts} · 已发布 ${week.published}`)),
+        h('div', { className: 'beer-home-grid' },
+          h(ScheduleCard, {
+            onError, onOpenArticle, onChanged: refreshHome, onSayInChat,
+            selectedDate, onSelectDate: selectDate,
+            refreshKey: scheduleRefresh,
+          }),
+          h('div', { className: 'beer-home-col' },
+            // 右栏顺序固定为：识别到日程（#55，条件显示）→ 小月历（#52）→ 等你处理（#48）
+            // → 今天的选题 → 正在写 → 录音。
+            h(PendingScheduleCard, { onError, onAccepted: afterPendingAccepted, onRestate }),
+            h(CalendarCard, {
+              selectedDate, onSelectDate: selectDate,
+              refreshKey: scheduleRefresh, onError,
+            }),
+            h('div', { className: 'beer-home-card' },
+              h(WaitingCard, { tasks, onOpenTab, onOpenConflict })),
+            h('div', { className: 'beer-home-card' },
+              h('div', { className: 'beer-home-card-hd' },
+                h('b', null, '今天的选题'),
+                brief.exists && h('button', {
+                  type: 'button', className: 'beer-linkbtn', onClick: () => onOpenTab('topics'),
+                }, '打开简报 →')),
+              brief.exists
+                ? h('div', { className: 'beer-home-brieftitle', title: brief.path },
+                  brief.title || '今天的简报已生成')
+                : ensuring
+                  ? h('div', { className: 'beer-home-empty' }, '生成中…')
+                  : briefError
+                    ? h('div', { className: 'beer-err', style: { margin: 0 } },
+                      `今天的选题简报没能生成：${briefError}；可以到选题页重试。`)
+                    : h('div', { className: 'beer-home-empty' }, '今天还没有选题简报。'),
+              brief.exists && brief.angleCount > 1 &&
+                h('div', { className: 'beer-muted' }, `另有 ${brief.angleCount - 1} 个备选角度`)),
+            h('div', { className: 'beer-home-card' },
+              h('div', { className: 'beer-home-card-hd' },
+                h('b', null, '正在写'),
+                h('span', { className: 'beer-chip' }, String(writing.length)),
+                h('button', { type: 'button', className: 'beer-linkbtn', onClick: () => onOpenTab('articles') }, '去文章页 →')),
+              writing.length === 0
+                ? h('div', { className: 'beer-home-empty' }, '没有在写的文章。')
+                : writing.map(article => h('button', {
+                  key: article.path, type: 'button', className: 'beer-home-art', title: article.path,
+                  onClick: () => (onOpenArticle ? onOpenArticle(article.path) : onOpenTab('articles')),
+                },
+                  h('span', { className: 'beer-chip' }, article.status),
+                  h('b', null, article.title),
+                  // 粗略里程碑进度（选题 15 / 草稿 50），按状态估算，不是真实字数完成度。
+                  article.progress != null && h('span', {
+                    className: 'beer-bar',
+                    title: `粗略进度：${article.status} ${article.progress}%（按状态估算）`,
+                  }, h('i', { style: { width: Math.max(2, article.progress) + '%' } }))))),
+            // 录音只占一行；没有处理中 / 失败的录音时整行不显示。
+            showRecording && h('div', { className: 'beer-home-rec' },
+              h('b', null, '录音'),
+              processing.length > 0 && h('span', null,
+                `${processing[0].title || processing[0].filename || '未命名录音'} · ${processing[0].step || '处理中'} ${processing[0].progress}%`),
+              processing.length > 0 && h('span', { className: 'beer-bar' },
+                h('i', { style: { width: Math.max(2, processing[0].progress) + '%' } })),
+              processing.length > 1 && h('span', null, `等 ${processing.length} 条`),
+              recordings.failedCount > 0 && h('span', { className: 'beer-chip bad' }, `${recordings.failedCount} 条失败`),
+              h('button', { type: 'button', className: 'beer-linkbtn', onClick: () => onOpenTab('recordings') }, '去录音页 →')))))
     }
 
     // ---- 素材分页：类型 / 标签 / 状态筛选、素材卡片、标签表编辑；点卡片用 LibraryView 预览 ----
@@ -2815,10 +3861,11 @@ window.__ModuleLoader__.load({
               entry.summary && h('div', { className: 'beer-sum' }, entry.summary)))))
     }
 
-    // 设置弹层（#33）：顶栏齿轮打开。列出 4 个钥匙串密钥的状态，逐个填写保存；配置项只读。
+    // 设置弹层（#33）：顶栏齿轮打开。列出钥匙串密钥的状态，逐个填写保存；配置项只读。
     // 输入框永远是空的，不回显、不预填已有值；接口也从不返回密钥本身。
     const SECRET_INFO = [
       ['home-api-key', 'Mac mini 家里服务的访问密钥'],
+      ['reminder-api-key', '云端提醒服务的访问密钥'],
       ['opencode-go-api-key', 'opencode go 的 API key（模型调用、查限额）'],
       ['rin-admin-username', 'Rin 博客管理员账号'],
       ['rin-admin-password', 'Rin 博客管理员密码'],
@@ -2830,6 +3877,7 @@ window.__ModuleLoader__.load({
     }
     const CONFIG_LABELS = [
       ['homeApiBase', '家里服务地址'],
+      ['reminderApiBase', '提醒服务地址'],
       ['rinApiBase', 'Rin 博客地址'],
       ['opencodeGoBase', 'opencode go 地址'],
       ['audioCacheLimitGB', '录音缓存上限（GB）'],
@@ -2946,7 +3994,33 @@ window.__ModuleLoader__.load({
     const MACHINE_NAMES = [['mac_mini', 'Mac mini'], ['windows', 'Windows'], ['nas', 'NAS']]
     const REC_STATUS = { processing: '处理中', ready: '待取回', stored: '已入库', failed: '失败' }
     const STEP_MARK = { done: '✓', running: '…', failed: '✕', pending: '○' }
-    const SUMMARY_TYPES = ['会议', '口述灵感', '课程讲座']
+    const SUMMARY_TYPES = ['会议', '口述灵感', '课程讲座', '视频']
+    // 录音分页能直接提交的视频链接（#34），和家里服务 POST /videos 收的一致
+    const VIDEO_LINK_HOSTS = ['bilibili.com', 'b23.tv', 'youtube.com', 'youtu.be']
+
+    function isVideoLink(raw) {
+      try {
+        const url = new URL(String(raw).trim())
+        const host = url.hostname.toLowerCase()
+        return (url.protocol === 'http:' || url.protocol === 'https:') &&
+          VIDEO_LINK_HOSTS.some(site => host === site || host.endsWith('.' + site))
+      } catch { return false }
+    }
+
+    function recTitle(rec) {
+      return rec?.title || rec?.filename || rec?.id || ''
+    }
+
+    /** 视频原链接加上起始秒数：B 站和 YouTube 都认 t=<秒>。 */
+    function videoLinkAt(url, seconds) {
+      const at = Math.floor(Number(seconds) || 0)
+      if (at <= 0) return url
+      try {
+        const u = new URL(url)
+        u.searchParams.set('t', String(at))
+        return u.toString()
+      } catch { return url }
+    }
 
     function formatBytes(bytes) {
       if (!Number.isFinite(bytes) || bytes <= 0) return ''
@@ -3013,6 +4087,8 @@ window.__ModuleLoader__.load({
       const [draftTypes, setDraftTypes] = useState({}) // 录音编号 → 用户选中的类型（还没重新总结）
       const [opened, setOpened] = useState({}) // 录音编号 → { loading, transcript, error }
       const [playing, setPlaying] = useState(null) // { id, title, startAt, nonce }
+      const [videoLink, setVideoLink] = useState('')
+      const [submittingLink, setSubmittingLink] = useState(false)
       const inputRef = useRef(null)
       const seeked = useRef(false)
       const handledRequest = useRef(null)
@@ -3026,7 +4102,16 @@ window.__ModuleLoader__.load({
           const slash = path.lastIndexOf('/')
           const folder = slash < 0 ? '' : path.slice(0, slash)
           const note = await api('GET', '/library/file?path=' + encodeURIComponent(folder + '/index.md'))
-          const m = /^录音编号:[ \t]*(.+?)[ \t]*\r?$/m.exec(note?.content ?? '')
+          const content = note?.content ?? ''
+          // 视频条目没有音频（不存 NAS）：到原链接从这一秒开始看
+          if (/^类型:[ \t]*视频[ \t]*\r?$/m.test(content)) {
+            const src = /^来源:[ \t]*(https?:\/\/\S+?)[ \t]*\r?$/m.exec(content)
+            if (!src) { setError('这条视频素材里没有原链接'); return }
+            window.open(videoLinkAt(src[1], request?.playAt), '_blank')
+            setError('')
+            return
+          }
+          const m = /^录音编号:[ \t]*(.+?)[ \t]*\r?$/m.exec(content)
           if (!m) { setError('这条文字稿对应的素材条目里没有录音编号，找不到可播放的音频'); return }
           setPlaying({
             id: m[1],
@@ -3090,6 +4175,27 @@ window.__ModuleLoader__.load({
         load()
       }
 
+      // 视频链接（#34）：交给家里转写，进度在下面的列表里；和对话里「整理到素材栏」走同一个接口。
+      const submitVideoLink = async () => {
+        const url = videoLink.trim()
+        if (!url || submittingLink) return
+        if (!isVideoLink(url)) {
+          setError('这里只收 B 站和 YouTube 的视频链接；其他链接在对话里让 AI 整理到素材栏')
+          return
+        }
+        setSubmittingLink(true)
+        setError('')
+        setNotice('')
+        try {
+          await api('POST', '/materials/import/url', { url })
+          setVideoLink('')
+          setNotice('已交给家里转写，完成后取回就会在素材栏出现「视频」条目')
+          await load()
+        } catch (e) {
+          setError(e.code === 'home_unreachable' ? '家里暂时连不上，视频没有提交，请稍后重试' : e.message)
+        } finally { setSubmittingLink(false) }
+      }
+
       const runSync = async () => {
         if (syncing) return
         setSyncing(true)
@@ -3112,9 +4218,13 @@ window.__ModuleLoader__.load({
       // 只有失败的录音能删（#30）：家里只删记录，NAS 上的原件留着，删错了可以取原件重新上传。
       const removeFailed = async rec => {
         if (deleting) return
-        const name = rec.filename ?? rec.id
-        const where = rec.original_path ? `\n\n原件仍保留在 NAS 上：${rec.original_path}\n删错了可以从那里取回原件重新上传。` : '\n\n原件仍保留在 NAS 上，删错了可以从那里取回原件重新上传。'
-        if (!window.confirm(`删除失败的录音「${name}」？只删这条录音记录，不进回收站。${where}`)) return
+        const name = recTitle(rec)
+        if (rec.kind === 'video') {
+          if (!window.confirm(`删除失败的视频任务「${name}」？只删这条任务记录，不进回收站。之后可以重新提交链接。`)) return
+        } else {
+          const where = rec.original_path ? `\n\n原件仍保留在 NAS 上：${rec.original_path}\n删错了可以从那里取回原件重新上传。` : '\n\n原件仍保留在 NAS 上，删错了可以从那里取回原件重新上传。'
+          if (!window.confirm(`删除失败的录音「${name}」？只删这条录音记录，不进回收站。${where}`)) return
+        }
         setDeleting(rec.id)
         setError('')
         setNotice('')
@@ -3122,7 +4232,7 @@ window.__ModuleLoader__.load({
           await api('DELETE', `/recordings/${encodeURIComponent(rec.id)}`)
           setRecords(prev => (prev ?? []).filter(r => r.id !== rec.id))
           setPlaying(prev => (prev?.id === rec.id ? null : prev))
-          setNotice(`已删除「${name}」，原件仍在 NAS 上`)
+          setNotice(rec.kind === 'video' ? `已删除「${name}」` : `已删除「${name}」，原件仍在 NAS 上`)
           await load()
         } catch (e) {
           setError(e.code === 'home_unreachable' ? '家里暂时连不上，没有删除，请稍后重试' : e.message)
@@ -3188,26 +4298,35 @@ window.__ModuleLoader__.load({
         const summary = opened[rec.id]
         const canSummary = rec.status === 'ready' || rec.status === 'stored'
         const isPlaying = playing?.id === rec.id
+        const video = rec.kind === 'video'
         const type = draftTypes[rec.id] ?? rec.summary_type ?? ''
-        const chosenType = type || '会议'
+        const chosenType = type || (video ? '视频' : '会议')
         return h('div', { key: rec.id, className: 'beer-rec-item' + (isPlaying ? ' on' : '') },
           h('div', { className: 'beer-rec-hd' },
-            h('b', { title: rec.filename }, rec.filename ?? rec.id),
+            h('b', { title: video ? rec.source_url : rec.filename }, recTitle(rec)),
+            video && h('span', { className: 'beer-chip' }, '视频'),
             h('span', { className: 'beer-chip' + (rec.status === 'failed' ? ' bad' : '') }, REC_STATUS[rec.status] ?? rec.status ?? '未知'),
-            rec.summary_type && h('span', { className: 'beer-chip' }, rec.summary_type),
+            // 视频按「视频」摘要时不再重复显示；改成别的摘要类型才显示
+            rec.summary_type && !(video && rec.summary_type === '视频') && h('span', { className: 'beer-chip' }, rec.summary_type),
             rec.status === 'failed' && h('button', { className: 'beer-btn', onClick: () => retry(rec.id), disabled: retrying === rec.id }, retrying === rec.id ? '重试中…' : '重试'),
-            rec.status === 'failed' && h('button', { className: 'beer-btn', onClick: () => removeFailed(rec), disabled: deleting === rec.id, title: '只删记录，NAS 上的原件保留' }, deleting === rec.id ? '删除中…' : '删除')),
+            rec.status === 'failed' && h('button', { className: 'beer-btn', onClick: () => removeFailed(rec), disabled: deleting === rec.id, title: video ? '只删这条任务记录' : '只删记录，NAS 上的原件保留' }, deleting === rec.id ? '删除中…' : '删除')),
           h('div', { className: 'beer-steps' }, steps.map(step =>
             h('span', { key: step.key, className: 'beer-step ' + step.status }, `${STEP_MARK[step.status] ?? '○'} ${step.name}`))),
           progress > 0 && progress < 100 && h('div', { className: 'beer-bar' }, h('i', { style: { width: progress + '%' } })),
           (rec.error_code || rec.error) && h('div', { className: 'beer-err' }, [rec.error_code, rec.error].filter(Boolean).join(' · ')),
           rec.mail_error && h('div', { className: 'beer-err' }, '通知邮件没发出去：' + rec.mail_error),
+          video && (rec.author || rec.text_source) && h('div', { className: 'beer-muted' },
+            [rec.author && `作者：${rec.author}`,
+              rec.text_source && `文字来源：${rec.text_source === 'asr' ? '语音识别' : rec.text_source === 'platform_auto' ? '平台自动字幕' : '平台字幕'}`]
+              .filter(Boolean).join(' · ')),
           h('div', { className: 'beer-actions' },
-            h('button', {
+            video
+              ? h('button', { className: 'beer-btn', onClick: () => window.open(rec.source_url, '_blank') }, '打开原链接')
+              : h('button', {
               className: 'beer-btn',
               onClick: () => setPlaying(prev => ({
                 id: rec.id,
-                title: rec.filename ?? rec.id,
+                title: recTitle(rec),
                 startAt: prev?.id === rec.id ? Number(prev.startAt) || 0 : 0,
                 nonce: Date.now(),
               })),
@@ -3216,7 +4335,7 @@ window.__ModuleLoader__.load({
             canSummary && h('select', {
               className: 'beer-mat-select',
               value: chosenType,
-              'aria-label': '录音类型',
+              'aria-label': video ? '摘要类型' : '录音类型',
               onChange: e => setDraftTypes(prev => ({ ...prev, [rec.id]: e.target.value })),
             }, SUMMARY_TYPES.map(t => h('option', { key: t, value: t }, t))),
             canSummary && h('button', {
@@ -3279,6 +4398,21 @@ window.__ModuleLoader__.load({
             onClick: e => e.stopPropagation(),
             onChange: e => { uploadFiles(e.target.files); e.target.value = '' },
           })),
+        h('form', {
+          className: 'beer-actions',
+          onSubmit: e => { e.preventDefault(); submitVideoLink() },
+        },
+          h('input', {
+            className: 'beer-mat-select',
+            style: { flex: '1 1 240px', minWidth: 0, maxWidth: 'none' },
+            type: 'url',
+            placeholder: '或者粘贴 B 站 / YouTube 视频链接，转出全文和摘要',
+            value: videoLink,
+            onChange: e => setVideoLink(e.target.value),
+            'aria-label': '视频链接',
+          }),
+          h('button', { className: 'beer-btn', type: 'submit', disabled: submittingLink || !videoLink.trim() },
+            submittingLink ? '提交中…' : '转写视频')),
         uploads.length > 0 && h('div', { className: 'beer-rec-list' }, uploads.map(u =>
           h('div', { key: u.key, className: 'beer-rec-item' },
             h('div', { className: 'beer-rec-hd' },
@@ -3297,7 +4431,7 @@ window.__ModuleLoader__.load({
         records === null
           ? h('div', { className: 'beer-muted' }, '加载中…')
           : records.length === 0
-            ? h('div', { className: 'beer-muted' }, '家里还没有录音。把手机录的音拖到上面吧。')
+            ? h('div', { className: 'beer-muted' }, '家里还没有录音。把手机录的音拖到上面，或者粘贴一个视频链接。')
             : h('div', { className: 'beer-rec-list' }, records.map(recordItem)))
     }
 
@@ -3465,11 +4599,30 @@ window.__ModuleLoader__.load({
         return (await copyText(text)) ? 'clipboard' : 'failed'
       }, [panel?.sessionId, service])
 
+      // 首页快速添加旁的「在对话里说」：只放进草稿，不发送、不自动问 AI。
+      const sayInChat = useCallback(async text => {
+        const q = String(text ?? '').trim()
+        if (!q) return 'empty'
+        const result = await attachToConversation(q)
+        notify(result === 'draft' ? '已放进对话草稿，确认后自己发送。'
+          : result === 'clipboard' ? '当前没有可用对话，已复制到剪贴板；先点「开始对话」再粘贴。'
+            : '没能放进对话，也没能复制，请手动复制。')
+        return result
+      }, [attachToConversation, notify])
+
       const attachHit = async hit => {
         const result = await attachToConversation(hitReference(hit))
         notify(result === 'draft' ? '已附到对话草稿，确认后自己发送。'
           : result === 'clipboard' ? '没有可用对话，已复制到剪贴板；先点「开始对话」再粘贴。'
             : '没能放进对话，也没能复制，请手动复制路径。')
+      }
+
+      // 首页「识别到日程」的「改一下」：只放进对话草稿，不自动发送。
+      const restateSchedule = async text => {
+        const result = await attachToConversation(text)
+        notify(result === 'draft' ? '已把这条日程带进对话草稿，改完自己发送。'
+          : result === 'clipboard' ? '没有可用对话，已复制到剪贴板；先点「开始对话」再粘贴。'
+            : '没能放进对话，也没能复制，请手动输入。')
       }
 
       const askAI = async query => {
@@ -3537,8 +4690,11 @@ window.__ModuleLoader__.load({
           key: `${vault.path}|home`,
           narrow: width - chatWidth < 760,
           onOpenTab: setTab,
+          onOpenArticle: openArticle,
           onOpenConflict: openConflict,
           onError: setError,
+          onSayInChat: sayInChat,
+          onRestate: restateSchedule,
         })
       } else if (current?.id === 'topics') {
         content = h(TopicsView, {

@@ -2,6 +2,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from .beebox import check_base_url
+
 SMTP_SECURITIES = ("ssl", "starttls", "none")
 
 
@@ -10,9 +12,10 @@ class Settings:
     access_key: str          # Beer 调用时带的访问密钥（Authorization: Bearer）
     originals_dir: Path      # 录音原件本地暂存目录（NAS 上的 WebDAV 才是主副本）
     db_path: Path            # SQLite 状态库
-    asr_base_url: str        # voice-transcription 基址，如 http://<windows>:8080/api
-    asr_token: str = ""      # ASRBOX_API_TOKEN
+    beebox_base_url: str     # BeeBox 基址，只写 http://<windows>:<端口>，不带路径（请求都以 /v1 开头）
+    beebox_token: str        # 与 Windows 上的 BEEBOX_API_TOKEN 一致
     poll_interval: float = 5.0  # 跟进转写任务的轮询间隔（秒）
+    health_interval: float = 1800.0  # 定时读 BeeBox /v1/health 的间隔（秒），用于 B 站登录失效提醒；0 关闭
     # opencode go（按类型摘要）：留空 API key 时摘要一步直接通过（no_summary）
     opencode_base: str = "https://opencode.ai"
     opencode_api_key: str = ""
@@ -43,6 +46,11 @@ class Settings:
                 raise RuntimeError(f"缺少环境变量 {name}")
             return value
 
+        renamed = [old for old in ("HOME_ASR_BASE_URL", "HOME_ASR_TOKEN") if old in os.environ]
+        if renamed:
+            raise RuntimeError(f"{' / '.join(renamed)} 已改名为 HOME_BEEBOX_BASE_URL / HOME_BEEBOX_TOKEN（#37），"
+                               "请更新 home-service.env")
+
         security = os.environ.get("HOME_SMTP_SECURITY", "ssl").strip().lower() or "ssl"
         if security not in SMTP_SECURITIES:
             raise RuntimeError(f"HOME_SMTP_SECURITY 只能是 {' / '.join(SMTP_SECURITIES)}")
@@ -50,9 +58,10 @@ class Settings:
             access_key=need("HOME_ACCESS_KEY"),
             originals_dir=Path(need("HOME_ORIGINALS_DIR")),
             db_path=Path(need("HOME_DB_PATH")),
-            asr_base_url=need("HOME_ASR_BASE_URL"),
-            asr_token=os.environ.get("HOME_ASR_TOKEN", ""),
+            beebox_base_url=check_base_url(need("HOME_BEEBOX_BASE_URL")),
+            beebox_token=need("HOME_BEEBOX_TOKEN"),
             poll_interval=float(os.environ.get("HOME_POLL_INTERVAL", "5")),
+            health_interval=float(os.environ.get("HOME_BEEBOX_HEALTH_INTERVAL", "1800")),
             opencode_base=os.environ.get("HOME_OPENCODE_BASE", "https://opencode.ai").strip()
             or "https://opencode.ai",
             opencode_api_key=os.environ.get("HOME_OPENCODE_API_KEY", "").strip(),

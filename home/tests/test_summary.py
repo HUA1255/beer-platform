@@ -1,6 +1,6 @@
 """按类型摘要、邮件通知、重新总结（#20）的接口测试。
 
-假的模型接口用 httpx.MockTransport（和 tests/fake_asr.py 的做法一致），
+假的模型接口用 httpx.MockTransport（和 tests/fake_beebox.py 的做法一致），
 假的 SMTP 用本文件里的最小 SMTP sink。只断言接口返回、库里留下的字段，
 以及实际发给模型和邮件服务器的内容。
 """
@@ -21,7 +21,7 @@ from home_service.app import create_app
 from home_service.config import Settings
 
 from .conftest import AUTH, settled, steps, upload, wait_for
-from .fake_asr import MD, SRT
+from .fake_beebox import MD, SRT
 
 # ---- 假模型：OpenAI 兼容 chat/completions ----
 
@@ -71,19 +71,20 @@ def summary_settings(tmp_path):
         access_key="home-test-key",
         originals_dir=originals,
         db_path=tmp_path / "home.sqlite3",
-        asr_base_url="http://windows-asr",
-        asr_token="asr-test-token",
+        beebox_base_url="http://windows-beebox",
+        beebox_token="beebox-test-token",
         poll_interval=0.0,
+        health_interval=0.0,
         opencode_base="http://opencode-fake",
         opencode_api_key="go-key-1",
     )
 
 
 @contextmanager
-def start_home(settings, fake_asr, fake_model, summarizer=None):
+def start_home(settings, fake_beebox, fake_model, summarizer=None):
     app = create_app(
         settings,
-        asr_transport=httpx.ASGITransport(app=fake_asr.app),
+        beebox_transport=httpx.ASGITransport(app=fake_beebox.app),
         llm_transport=fake_model.transport,
         summarizer=summarizer,
     )
@@ -92,8 +93,8 @@ def start_home(settings, fake_asr, fake_model, summarizer=None):
 
 
 @pytest.fixture
-def client(summary_settings, fake_asr, fake_model):
-    with start_home(summary_settings, fake_asr, fake_model) as c:
+def client(summary_settings, fake_beebox, fake_model):
+    with start_home(summary_settings, fake_beebox, fake_model) as c:
         yield c
 
 
@@ -237,10 +238,10 @@ def test_model_request_uses_opencode_endpoint_and_session_header(client, fake_mo
     ("口述灵感", "原话"),
     ("课程讲座", "知识点大纲"),
 ])
-def test_each_type_uses_its_own_prompt_and_saves_that_type(summary_settings, fake_asr, fake_model, kind, marker):
+def test_each_type_uses_its_own_prompt_and_saves_that_type(summary_settings, fake_beebox, fake_model, kind, marker):
     fake_model.type_reply = json.dumps({"type": kind}, ensure_ascii=False)
     fake_model.summary_reply = f"## {marker}\n\n内容。"
-    with start_home(summary_settings, fake_asr, fake_model) as client:
+    with start_home(summary_settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="录音.m4a")
         r = wait_for(client, rec_id, settled)
 
@@ -251,9 +252,9 @@ def test_each_type_uses_its_own_prompt_and_saves_that_type(summary_settings, fak
         assert all(t in fake_model.prompts[0] for t in ("会议", "口述灵感", "课程讲座"))
 
 
-def test_unknown_type_falls_back_to_meeting_with_note(summary_settings, fake_asr, fake_model):
+def test_unknown_type_falls_back_to_meeting_with_note(summary_settings, fake_beebox, fake_model):
     fake_model.type_reply = '{"type": "访谈"}'
-    with start_home(summary_settings, fake_asr, fake_model) as client:
+    with start_home(summary_settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="访谈.m4a")
         r = wait_for(client, rec_id, settled)
 
@@ -262,9 +263,9 @@ def test_unknown_type_falls_back_to_meeting_with_note(summary_settings, fake_asr
         assert fake_model.summary_reply in r["summary"]
 
 
-def test_unparsable_type_reply_falls_back_to_meeting(summary_settings, fake_asr, fake_model):
+def test_unparsable_type_reply_falls_back_to_meeting(summary_settings, fake_beebox, fake_model):
     fake_model.type_reply = "这看起来像一场会议，但没有按 JSON 回。"
-    with start_home(summary_settings, fake_asr, fake_model) as client:
+    with start_home(summary_settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="会议.m4a")
         r = wait_for(client, rec_id, settled)
 
@@ -275,9 +276,9 @@ def test_unparsable_type_reply_falls_back_to_meeting(summary_settings, fake_asr,
 # ---- 邮件 ----
 
 
-def test_email_contains_type_and_summary(summary_settings, fake_asr, fake_model, smtp_sink):
+def test_email_contains_type_and_summary(summary_settings, fake_beebox, fake_model, smtp_sink):
     settings = mail_settings(summary_settings, smtp_sink.port)
-    with start_home(settings, fake_asr, fake_model) as client:
+    with start_home(settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="周会.m4a")
         r = wait_for(client, rec_id, lambda rec: settled(rec) and rec["status"] == "ready")
 
@@ -300,9 +301,9 @@ def test_without_smtp_configuration_mail_is_skipped(client, fake_model):
     assert r["mail_error"] is None
 
 
-def test_smtp_failure_keeps_summary_and_exposes_mail_error(summary_settings, fake_asr, fake_model):
+def test_smtp_failure_keeps_summary_and_exposes_mail_error(summary_settings, fake_beebox, fake_model):
     settings = mail_settings(summary_settings, closed_port())
-    with start_home(settings, fake_asr, fake_model) as client:
+    with start_home(settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="周会.m4a")
         r = wait_for(client, rec_id, settled)
 
@@ -316,9 +317,9 @@ def test_smtp_failure_keeps_summary_and_exposes_mail_error(summary_settings, fak
 # ---- 模型失败与重试 ----
 
 
-def test_model_failure_fails_summarize_step_and_retry_redoes_it(summary_settings, fake_asr, fake_model):
+def test_model_failure_fails_summarize_step_and_retry_redoes_it(summary_settings, fake_beebox, fake_model):
     fake_model.fail = True
-    with start_home(summary_settings, fake_asr, fake_model) as client:
+    with start_home(summary_settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="周会.m4a")
         r = wait_for(client, rec_id, settled)
 
@@ -371,9 +372,9 @@ def test_resummarize_rejects_unknown_type(client, fake_model):
     assert client.get(f"/recordings/{rec_id}", headers=AUTH).json()["summary"] == fake_model.summary_reply
 
 
-def test_resummarize_rejected_before_ready(fake_asr, summary_settings, fake_model):
-    fake_asr.hold = True
-    with start_home(summary_settings, fake_asr, fake_model) as client:
+def test_resummarize_rejected_before_ready(fake_beebox, summary_settings, fake_model):
+    fake_beebox.hold = True
+    with start_home(summary_settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="周会.m4a")
         wait_for(client, rec_id, lambda r: r["steps"][1]["status"] == "running")
 
@@ -383,8 +384,8 @@ def test_resummarize_rejected_before_ready(fake_asr, summary_settings, fake_mode
         assert r.json()["error_code"] == "NOT_READY"
 
 
-def test_resummarize_model_failure_keeps_old_summary(summary_settings, fake_asr, fake_model):
-    with start_home(summary_settings, fake_asr, fake_model) as client:
+def test_resummarize_model_failure_keeps_old_summary(summary_settings, fake_beebox, fake_model):
+    with start_home(summary_settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="周会.m4a")
         wait_for(client, rec_id, settled)
         fake_model.fail = True
@@ -398,9 +399,9 @@ def test_resummarize_model_failure_keeps_old_summary(summary_settings, fake_asr,
         assert body["summary_type"] == "会议"
 
 
-def test_resummarize_without_model_key_is_unavailable(summary_settings, fake_asr, fake_model):
+def test_resummarize_without_model_key_is_unavailable(summary_settings, fake_beebox, fake_model):
     settings = replace(summary_settings, opencode_api_key="")
-    with start_home(settings, fake_asr, fake_model) as client:
+    with start_home(settings, fake_beebox, fake_model) as client:
         rec_id = upload(client, name="周会.m4a")
         wait_for(client, rec_id, settled)
 
@@ -436,11 +437,11 @@ def make_old_db(path):
     db.close()
 
 
-def test_old_database_gets_new_columns_without_losing_data(summary_settings, fake_asr, fake_model, tmp_path):
+def test_old_database_gets_new_columns_without_losing_data(summary_settings, fake_beebox, fake_model, tmp_path):
     old_db = tmp_path / "old.sqlite3"
     make_old_db(old_db)
     settings = replace(summary_settings, db_path=old_db)
-    with start_home(settings, fake_asr, fake_model) as client:
+    with start_home(settings, fake_beebox, fake_model) as client:
         listing = client.get("/recordings", headers=AUTH)
         assert listing.status_code == 200
         [rec] = listing.json()["recordings"]
@@ -463,3 +464,17 @@ def test_old_database_gets_new_columns_without_losing_data(summary_settings, fak
                         " WHERE id = 'old-1'").fetchone()
     check.close()
     assert row == ("旧录音.m4a", MD, SRT, "课程讲座")
+
+
+def test_smtp_tls_uses_certifi_roots(monkeypatch):
+    """SMTP 的 TLS 用 certifi 的根证书（uv 装的 Python 在 macOS 上读不到系统根证书）。"""
+    import certifi
+    import ssl
+
+    from home_service import mailer
+
+    seen = []
+    real = ssl.create_default_context
+    monkeypatch.setattr(mailer.ssl, "create_default_context", lambda **kw: seen.append(kw) or real(**kw))
+    mailer._tls_context()
+    assert seen == [{"cafile": certifi.where()}]

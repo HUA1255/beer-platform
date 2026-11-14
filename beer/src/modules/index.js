@@ -20,6 +20,8 @@ import * as publish from './publish.js'
 import * as publishPackages from './publish-packages.js'
 import * as rules from './rules.js'
 import * as home from './home.js'
+import * as schedule from './schedule.js'
+import * as scheduleTools from './schedule-tools.js'
 import * as clientAssets from './client-assets.js'
 
 export const modules = [
@@ -41,5 +43,7 @@ export const modules = [
   publishPackages.register,
   rules.register,
   home.register,
+  schedule.register,
+  scheduleTools.registerPendingScheduleRoutes,
   clientAssets.register,
 ]

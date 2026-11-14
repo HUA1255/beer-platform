@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beer 首页 · 自由设计</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",sans-serif;color:#2b2621;background:#ddd}
+.switch{position:sticky;top:0;z-index:20;display:flex;gap:4px;align-items:center;padding:8px 14px;background:#1f1c19;color:#fff;font-size:13px;flex-wrap:wrap}
+.switch a{color:#cfc7bc;padding:2px 10px;border-radius:6px;cursor:pointer;text-decoration:none}
+.switch a.on{background:#fff;color:#1f1c19;font-weight:600}
+.switch .hint{margin-left:auto;color:#8f877c;font-size:12px}
+.v{display:none;min-height:calc(100vh - 38px)}
+.v.on{display:flex;flex-direction:column}
+.note{margin:18px auto 22px;max-width:1100px;width:calc(100% - 32px);padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.7;background:rgba(255,255,255,.85);color:#5e564b;border:1px dashed rgba(0,0,0,.15)}
+.note b{color:#2b2621}
+/* Beer 外框（各方向自己着色） */
+.chrome{display:flex;gap:10px;align-items:center;padding:8px 16px;font-size:12px}
+.chrome .logo{font-weight:700;font-size:15px}
+.chrome .search{width:220px;border-radius:8px;padding:3px 10px}
+.chrome .right{margin-left:auto}
+.tabs{display:flex;gap:2px;padding:0 14px;font-size:13px}
+.tabs span{padding:7px 12px}
+.chat{position:fixed;right:0;top:38px;bottom:0;width:30px;display:flex;justify-content:center;padding-top:14px;font-size:12px;writing-mode:vertical-rl;z-index:3}
+.main{flex:1;padding:18px 48px 0 20px}
+
+/* ============ 1 手帐 ============ */
+#v1{background:#e7dfd1 radial-gradient(rgba(0,0,0,.025) 1px,transparent 1px) 0 0/6px 6px}
+#v1 .chrome{color:#6f665c}
+#v1 .chrome .search{background:#f6f1e7;border:1px solid #d8cebd;color:#a39a8f}
+#v1 .tabs{border-bottom:1px solid #d3c8b5;color:#6f665c}
+#v1 .tabs .on{color:#2b2621;font-weight:600;border-bottom:2px solid #c0563a}
+#v1 .chat{background:#e7dfd1;color:#a39a8f;border-left:1px solid #d3c8b5}
+.book{max-width:1120px;margin:6px auto 0;display:grid;grid-template-columns:1fr 1fr;background:#fbf7ee;border-radius:6px 6px 4px 4px;box-shadow:0 1px 0 #d8cebd,0 18px 40px -18px rgba(60,40,20,.35);position:relative}
+.book::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:36px;margin-left:-18px;background:linear-gradient(90deg,transparent,rgba(80,60,30,.10) 45%,rgba(80,60,30,.16) 50%,rgba(80,60,30,.10) 55%,transparent)}
+.page{padding:26px 34px 30px;min-height:620px;background-image:repeating-linear-gradient(transparent 0 31px,#e9e0cf 31px 32px);background-position:0 92px}
+.page.l{border-right:1px solid #eadfcb}
+.kai{font-family:"Kaiti SC","STKaiti","KaiTi",serif}
+.pdate{display:flex;align-items:baseline;gap:12px;height:66px}
+.pdate .d{font:700 44px/1 Georgia,serif;color:#2b2621}
+.pdate .m{font-size:13px;color:#8a7f72;letter-spacing:.1em}
+.pdate .w{margin-left:auto;font-size:22px;color:#c0563a}
+.ptitle{font-size:19px;margin:0;height:32px;line-height:32px;display:flex;gap:8px;align-items:center}
+.tape{display:inline-block;padding:0 10px;height:20px;line-height:20px;font-size:12px;transform:rotate(-2deg);background:rgba(192,86,58,.22);color:#8a3b25}
+.tape.y{background:rgba(222,180,70,.35);color:#7a5a10}
+.tape.b{background:rgba(90,130,170,.25);color:#2e5374}
+.line{display:flex;gap:12px;align-items:center;height:32px;font-size:15px}
+.line .tm{width:52px;text-align:right;color:#8a7f72;font-size:12px;font-variant-numeric:tabular-nums;border-right:2px solid rgba(192,86,58,.35);padding-right:10px;height:32px;line-height:32px}
+.line .ck{width:15px;height:15px;border:1.5px solid #6f665c;border-radius:50%;flex:none}
+.line.done .ck{background:#6f8a5a;border-color:#6f8a5a}
+.line.done .tx{text-decoration:line-through;color:#a39a8f}
+.line .tx{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .sm{font-size:12px;color:#8a7f72;white-space:nowrap}
+.line.late .tm{color:#c0563a;font-weight:700}
+.pen{color:#a39a8f;font-size:14px}
+.weekmini{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border:1px solid #e1d6c2;background:#fffdf7;margin:0 0 32px}
+.weekmini div{border-right:1px solid #eee4d3;padding:4px 6px;height:96px;font-size:11px;color:#6f665c;overflow:hidden}
+.weekmini div:last-child{border-right:0}
+.weekmini b{display:block;font:700 15px/1.2 Georgia,serif;color:#2b2621}
+.weekmini .t{background:#f6e3d8}
+.weekmini i{display:block;font-style:normal;margin-top:3px;padding-left:5px;border-left:2px solid #c0563a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.weekmini i.y{border-left-color:#d1a23a}
+.sticky{background:#fbe9a6;padding:14px 16px 12px;transform:rotate(-1.2deg);box-shadow:0 8px 14px -8px rgba(90,70,10,.45);margin:4px 8px 28px 0;position:relative}
+.sticky::before{content:"";position:absolute;top:-9px;left:40%;width:70px;height:18px;background:rgba(255,255,255,.55);transform:rotate(3deg)}
+.sticky h4{margin:0 0 6px;font-size:17px}
+.sticky p{margin:3px 0;font-size:14px;display:flex;gap:8px}
+.sticky p span{margin-left:auto;color:#8a6a10;font-size:12px}
+.clip{display:flex;gap:10px;align-items:center;font-size:13px;color:#5e564b;margin-bottom:22px}
+.clip .bar{flex:1;height:6px;background:#eadfcb;border-radius:3px;overflow:hidden}
+.clip .bar i{display:block;width:62%;height:100%;background:#c0563a}
+.stamp{display:inline-flex;gap:16px;border:2px solid rgba(192,86,58,.6);color:#a8472c;padding:6px 14px;border-radius:6px;transform:rotate(-2deg);font-size:13px}
+.stamp b{font:700 18px Georgia,serif}
+
+/* ============ 2 一句话安排 ============ */
+#v2{background:linear-gradient(180deg,#fff6f0 0,#fbfaf8 320px)}
+#v2 .chrome{color:#6b6b74}
+#v2 .chrome .search{background:#fff;border:1px solid #ececee;color:#a1a1aa}
+#v2 .tabs{color:#6b6b74;border-bottom:1px solid #f0e8e2}
+#v2 .tabs .on{color:#18181b;font-weight:600;border-bottom:2px solid #18181b}
+#v2 .chat{background:#fbfaf8;color:#a1a1aa;border-left:1px solid #f0e8e2}
+.hero{max-width:860px;margin:30px auto 0;text-align:center}
+.hero .hi{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0}
+.hero .sub{color:#6b6b74;margin:4px 0 18px}
+.hero .sub b{color:#e5484d}
+.ask{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #f0dcd2;border-radius:16px;padding:12px 14px 12px 18px;box-shadow:0 10px 30px -12px rgba(217,105,74,.35)}
+.ask .ph{flex:1;text-align:left;color:#a1a1aa;font-size:15px}
+.ask kbd{font:12px -apple-system;color:#a1a1aa;border:1px solid #ececee;border-radius:5px;padding:0 6px}
+.ask .go{background:#d9694a;color:#fff;border-radius:10px;padding:5px 14px;font-size:13px;font-weight:600}
+.sugs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.sugs span{font-size:12px;color:#6b6b74;background:#fff;border:1px solid #ececee;border-radius:999px;padding:3px 12px}
+.ruler{max-width:1100px;margin:34px auto 0;position:relative;height:96px}
+.ruler .axis{position:absolute;left:0;right:0;top:64px;border-top:1px solid #e4e4e7}
+.ruler .hr{position:absolute;top:70px;font-size:11px;color:#a1a1aa;transform:translateX(-50%)}
+.ruler .tick{position:absolute;top:60px;height:8px;border-left:1px solid #d4d4d8}
+.ruler .blk{position:absolute;top:8px;height:48px;border-radius:10px;padding:5px 10px;font-size:12px;overflow:hidden;white-space:nowrap}
+.ruler .blk b{display:block;font-size:13px}
+.ruler .blk.a{background:#fde6dd;color:#b4482b;border:1px solid #f6cbbb}
+.ruler .blk.d{background:#f4f4f5;color:#a1a1aa;border:1px solid #ececee}
+.ruler .nowl{position:absolute;top:0;height:72px;border-left:2px solid #e5484d}
+.ruler .nowl span{position:absolute;top:-2px;left:4px;font-size:11px;color:#e5484d;font-weight:600}
+.cards3{max-width:1100px;margin:22px auto 0;display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px}
+.c2{background:#fff;border:1px solid #f0ebe7;border-radius:14px;padding:14px 16px}
+.c2 h3{margin:0 0 8px;font-size:13px;display:flex;gap:6px;align-items:center}
+.c2 h3 em{font-style:normal;font-weight:500;color:#a1a1aa}
+.todo{display:flex;gap:10px;align-items:center;padding:6px 0;border-top:1px solid #f6f3f1;font-size:14px}
+.todo:first-of-type{border-top:0}
+.todo .ck{width:16px;height:16px;border-radius:50%;border:1.5px solid #d4d4d8;flex:none}
+.todo .dl{margin-left:auto;font-size:12px;color:#a1a1aa;white-space:nowrap}
+.todo .dl.r{color:#e5484d}
+.todo .dl.o{color:#c27c0e}
+.big3{display:flex;gap:18px;margin:4px 0 10px}
+.big3 div{font-size:12px;color:#a1a1aa}
+.big3 b{display:block;font-size:24px;color:#18181b;font-weight:600}
+.minirec{display:flex;gap:8px;align-items:center;font-size:12px;color:#6b6b74;background:#faf7f5;border-radius:10px;padding:8px 10px}
+.minirec .bar{flex:1;height:4px;background:#ececee;border-radius:2px;overflow:hidden}
+.minirec .bar i{display:block;width:62%;height:100%;background:#d9694a}
+
+/* ============ 3 夜间 ============ */
+#v3{background:#14120f;color:#e9e3d9}
+#v3 .chrome{color:#8f877c}
+#v3 .chrome .logo{color:#f1ebe2}
+#v3 .chrome .search{background:#1f1c18;border:1px solid #2c2822;color:#6f665c}
+#v3 .tabs{color:#8f877c;border-bottom:1px solid #26221d}
+#v3 .tabs .on{color:#f2b36d;border-bottom:2px solid #f2b36d}
+#v3 .chat{background:#14120f;color:#5e564b;border-left:1px solid #26221d}
+#v3 .note{background:#1f1c18;color:#a39a8f;border-color:#3a342c}
+#v3 .note b{color:#f1ebe2}
+.cock{max-width:1140px;margin:10px auto 0;display:grid;grid-template-columns:360px 1fr;gap:18px}
+.panel{background:#1c1915;border:1px solid #2a261f;border-radius:16px;padding:18px 20px}
+.clock{font:300 64px/1 "SF Mono",ui-monospace,Menlo,monospace;letter-spacing:-.03em;color:#f6efe4}
+.clock small{font-size:14px;color:#8f877c;letter-spacing:0;margin-left:8px}
+.ring{display:flex;gap:16px;align-items:center;margin-top:22px}
+.ring .lbl{font-size:12px;color:#8f877c}
+.ring .t{font-size:17px;font-weight:600;color:#f6efe4}
+.ring .s{font-size:12px;color:#c9bfb1}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+.tile{background:#24201b;border-radius:12px;padding:10px 12px}
+.tile b{display:block;font:500 26px/1.1 "SF Mono",ui-monospace,Menlo,monospace}
+.tile span{font-size:12px;color:#8f877c}
+.tile.r b{color:#ff7a66}.tile.a b{color:#f2b36d}.tile.g b{color:#9fd39a}
+.tline{position:relative;padding-left:26px}
+.tline::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;border-left:1px dashed #3a342c}
+.te{position:relative;padding:8px 0 10px}
+.te::before{content:"";position:absolute;left:-23px;top:14px;width:11px;height:11px;border-radius:50%;background:#14120f;border:2px solid #5e564b}
+.te.done::before{background:#5e564b}
+.te.late::before{border-color:#ff7a66}
+.te.next::before{border-color:#f2b36d;box-shadow:0 0 0 4px rgba(242,179,109,.18)}
+.te .r1{display:flex;gap:10px;align-items:baseline}
+.te .tm{font:13px "SF Mono",ui-monospace,Menlo,monospace;color:#8f877c;width:86px;flex:none}
+.te.late .tm{color:#ff7a66}
+.te.next .tm{color:#f2b36d}
+.te .tx{font-size:15px;color:#f1ebe2}
+.te.done .tx{color:#5e564b;text-decoration:line-through}
+.te .mt{margin-left:96px;font-size:12px;color:#8f877c}
+.pill{display:inline-block;font-size:11px;padding:0 7px;border-radius:999px;background:#2a261f;color:#c9bfb1;margin-right:6px}
+.sep{font-size:11px;letter-spacing:.14em;color:#6f665c;margin:14px 0 2px}
+.wait{display:flex;gap:10px;align-items:center;background:#24201b;border-radius:10px;padding:8px 12px;margin-top:8px;font-size:13px}
+.wait span:last-child{margin-left:auto;color:#f2b36d;font-size:12px}
+
+/* ============ 4 看板 ============ */
+#v4{background:#f3efe8}
+#v4 .chrome{color:#6f665c;background:#fbf8f3;border-bottom:1px solid #e6dfd4}
+#v4 .chrome .search{background:#fff;border:1px solid #e6dfd4;color:#a39a8f}
+#v4 .tabs{background:#fbf8f3;color:#6f665c;border-bottom:1px solid #e6dfd4}
+#v4 .tabs .on{color:#2b2621;font-weight:600;border-bottom:2px solid #d9694a}
+#v4 .chat{background:#fbf8f3;color:#a39a8f;border-left:1px solid #e6dfd4}
+.kbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;max-width:1180px;margin:0 auto 14px}
+.kbar h2{margin:0;font-size:18px}
+.kbar .s{color:#6f665c;font-size:13px}
+.kbar .in{margin-left:auto;flex:0 1 380px;background:#fff;border:1px solid #e6dfd4;border-radius:10px;padding:6px 12px;color:#a39a8f;font-size:13px}
+.lanes{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,1.05fr);gap:12px;align-items:start}
+.lane{background:#ebe5db;border-radius:14px;padding:10px;min-height:420px}
+.lane h4{margin:2px 4px 10px;font-size:13px;display:flex;gap:6px;align-items:center;color:#4a433b}
+.lane h4 em{font-style:normal;background:#fff;border-radius:999px;padding:0 7px;font-size:11px;color:#6f665c}
+.lane.late h4{color:#c0463b}
+.lane.dark{background:#2b2621}
+.lane.dark h4{color:#fbf8f3}
+.kc{background:#fff;border-radius:10px;padding:9px 11px;margin-bottom:8px;box-shadow:0 1px 0 #e0d8cb;border-left:3px solid transparent;font-size:13px}
+.kc b{display:block;font-size:14px;line-height:1.4}
+.kc .m{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:11px;color:#8a8076}
+.kc .m span{background:#f3efe8;border-radius:5px;padding:0 6px}
+.kc.r{border-left-color:#c0463b}.kc.o{border-left-color:#d9694a}.kc.y{border-left-color:#d1a23a}.kc.g{border-left-color:#8fa98a}
+.kc.done{opacity:.5}.kc.done b{text-decoration:line-through}
+.lane.dark .kc{background:#3a332c;color:#e9e3d9;box-shadow:none}
+.lane.dark .kc .m span{background:#4a423a;color:#d8cfc3}
+.lane .addc{font-size:12px;color:#8a8076;padding:4px 6px}
+.kfoot{max-width:1180px;margin:12px auto 0;display:flex;gap:16px;font-size:12px;color:#6f665c;flex-wrap:wrap}
+.kfoot .bar{width:90px;height:5px;background:#e0d8cb;border-radius:3px;display:inline-block;vertical-align:middle;overflow:hidden}
+.kfoot .bar i{display:block;width:62%;height:100%;background:#d9694a}
+
+/* ============ 5 我的一天（侧栏） ============ */
+#v5{background:#f6f5f1}
+#v5 .chrome{color:#5f6b63;background:#fff;border-bottom:1px solid #e7e6e0}
+#v5 .chrome .search{background:#f6f5f1;border:1px solid #e7e6e0;color:#9aa39c}
+#v5 .tabs{background:#fff;color:#5f6b63;border-bottom:1px solid #e7e6e0}
+#v5 .tabs .on{color:#1e2a23;font-weight:600;border-bottom:2px solid #2f6b4f}
+#v5 .chat{background:#fff;color:#9aa39c;border-left:1px solid #e7e6e0}
+.split{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 340px;margin-right:30px}
+.left5{padding:20px 24px}
+.left5 h2{margin:0 0 4px;font-size:22px;color:#1e2a23}
+.left5 .s{color:#5f6b63;margin-bottom:16px}
+.brief{background:#1e2a23;color:#e8efe9;border-radius:16px;padding:18px 20px;display:flex;gap:18px;align-items:center}
+.brief .k{font-size:12px;color:#9fc0ad;letter-spacing:.08em}
+.brief h3{margin:4px 0;font-size:18px}
+.brief p{margin:0;font-size:13px;color:#b9cbbf}
+.brief .b{margin-left:auto;background:#e8efe9;color:#1e2a23;border-radius:9px;padding:6px 14px;font-size:13px;font-weight:600;white-space:nowrap}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.c5{background:#fff;border:1px solid #e7e6e0;border-radius:14px;padding:14px 16px}
+.c5 h4{margin:0 0 10px;font-size:13px;color:#1e2a23;display:flex;gap:6px}
+.c5 h4 em{font-style:normal;color:#9aa39c;font-weight:400}
+.art{display:flex;gap:10px;align-items:center;padding:7px 0;border-top:1px solid #f0efea;font-size:14px}
+.art:first-of-type{border-top:0}
+.art .st{font-size:11px;border-radius:5px;padding:0 6px;background:#eef3ef;color:#2f6b4f;white-space:nowrap}
+.art .st.w{background:#fbf0d9;color:#a06a0a}
+.art .pg{margin-left:auto;width:70px;height:4px;background:#eceae4;border-radius:2px;overflow:hidden}
+.art .pg i{display:block;height:100%;background:#2f6b4f}
+.rail{background:#fff;border-left:1px solid #e7e6e0;padding:18px 18px}
+.rail .dt{display:flex;align-items:baseline;gap:8px}
+.rail .dt b{font-size:34px;line-height:1;color:#1e2a23;font-weight:700}
+.rail .dt span{color:#5f6b63}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:12px 0 14px;font-size:11px;text-align:center;color:#5f6b63}
+.cal .h{color:#9aa39c}
+.cal span{padding:3px 0;border-radius:6px;position:relative}
+.cal .x{color:#cfd3cf}
+.cal .td{background:#2f6b4f;color:#fff;font-weight:700}
+.cal .ev::after{content:"";position:absolute;left:50%;bottom:0;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:#d1823a}
+.rail h5{margin:14px 0 6px;font-size:12px;color:#5f6b63;display:flex}
+.rail h5 em{margin-left:auto;font-style:normal;color:#2f6b4f;font-weight:400}
+.ag{display:flex;gap:10px;padding:7px 0;font-size:13px;align-items:flex-start}
+.ag .tm{width:44px;flex:none;color:#5f6b63;font-variant-numeric:tabular-nums;font-size:12px;padding-top:1px}
+.ag .bd{flex:1;border-left:3px solid #2f6b4f;padding-left:8px}
+.ag .bd small{display:block;color:#9aa39c;font-size:11px}
+.ag.iv .bd{border-left-color:#d1823a}
+.ag.done{opacity:.45}
+.ag.done .bd b{text-decoration:line-through}
+.rt{display:flex;gap:9px;align-items:center;padding:5px 0;font-size:13px}
+.rt .ck{width:15px;height:15px;border:1.5px solid #9aa39c;border-radius:4px;flex:none}
+.rt .dl{margin-left:auto;font-size:11px;color:#9aa39c;white-space:nowrap}
+.rt .dl.r{color:#c0463b}
+.radd{margin-top:8px;border:1px dashed #d6d8d2;border-radius:9px;padding:6px 10px;color:#9aa39c;font-size:12px}
+@media (max-width:980px){.book,.cock,.cards3,.g2,.split{grid-template-columns:1fr}.lanes{grid-template-columns:1fr 1fr}.chat{display:none}.main{padding-right:20px}}
+</style>
+</head>
+<body>
+<div class="switch">
+  <b style="margin-right:8px">首页 · 自由设计</b>
+  <a data-v="v1">1 手帐</a>
+  <a data-v="v2">2 一句话安排</a>
+  <a data-v="v3">3 夜间</a>
+  <a data-v="v4">4 看板</a>
+  <a data-v="v5">5 我的一天</a>
+  <span class="hint">数据都是假的 · 每个方向的布局和风格都不同</span>
+</div>
+
+<!-- ================= 1 手帐 ================= -->
+<section class="v" id="v1">
+  <div class="chrome"><span class="logo kai" style="font-size:18px">Beer</span><span class="search">搜索 ⌘K</span><span class="right">家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="on">首页</span><span>录音</span><span>素材</span><span>选题</span><span>文章</span><span>发布</span><span>规则</span><span>回收站</span></div>
+  <div class="main">
+    <div class="book">
+      <div class="page l">
+        <div class="pdate"><span class="d">12</span><span class="m">NOV · 2026<br>十一月</span><span class="w kai">星期四</span></div>
+        <h3 class="ptitle kai">今天 <span class="tape">面试日</span></h3>
+        <div class="line late"><span class="tm">昨天</span><span class="ck"></span><span class="tx">把《AI 写作工作流》改完第二稿</span><span class="sm">逾期</span></div>
+        <div class="line done"><span class="tm">09:00</span><span class="ck"></span><span class="tx">看昨天的读者留言</span><span class="sm">↻ 每天</span></div>
+        <div class="line"><span class="tm">14:00</span><span class="ck"></span><span class="tx"><b>某公司一面</b> · 腾讯会议 123-456</span><span class="tape b">✉ 13:30</span></div>
+        <div class="line"><span class="tm">今天内</span><span class="ck"></span><span class="tx">回复编辑的修改意见</span><span class="sm">来自对话</span></div>
+        <div class="line"><span class="tm"></span><span class="pen kai">＋ 写下一件事……（回车保存，或在对话里说）</span></div>
+        <div class="line"></div>
+        <h3 class="ptitle kai">接下来</h3>
+        <div class="line"><span class="tm">周五</span><span class="ck"></span><span class="tx">交《效率工具》专栏稿</span><span class="tape y">还剩 1 天</span></div>
+        <div class="line"><span class="tm">周六 10:00</span><span class="ck"></span><span class="tx">某公司二面</span><span class="tape b">✉ 9:30</span></div>
+        <div class="line"><span class="tm">周日</span><span class="ck"></span><span class="tx">整理本周素材，挑下周选题</span><span class="sm">↻ 每周日</span></div>
+      </div>
+      <div class="page">
+        <div class="pdate"><span class="m kai" style="font-size:20px;letter-spacing:0;color:#2b2621">这一周</span><span class="w" style="font-size:12px;color:#8a7f72">11/9 – 11/15</span></div>
+        <div class="weekmini">
+          <div>一<b>9</b><i>读者留言</i></div>
+          <div>二<b>10</b><i>发公众号</i></div>
+          <div>三<b>11</b><i>二稿截止</i></div>
+          <div class="t">四<b>12</b><i>14:00 一面</i><i class="y">回复编辑</i></div>
+          <div>五<b>13</b><i class="y">交专栏稿</i></div>
+          <div>六<b>14</b><i>10:00 二面</i></div>
+          <div>日<b>15</b><i class="y">整理素材</i></div>
+        </div>
+        <div class="sticky kai">
+          <h4>等你处理 · 2</h4>
+          <p>《为什么我不再用番茄钟》成稿待确认 <span>去发布 →</span></p>
+          <p>今天的选题简报已经生成 <span>去选题 →</span></p>
+        </div>
+        <div class="clip">📎 <span>读书会-1110.m4a 正在转写</span><span class="bar"><i></i></span><span>62%</span></div>
+        <div class="stamp kai">本周 <span>素材 <b>6</b></span><span>成稿 <b>2</b></span><span>发布 <b>1</b></span></div>
+      </div>
+    </div>
+    <div class="note"><b>1 手帐</b>：首页是一本摊开的本子。左页是「今天」，横线纸、红色页边线写时间，标签像贴的纸胶带；右页是这一周的小格子、一张黄色便利贴（等你处理）、回形针别着的录音进度，底下盖一个「本周产出」的章。标题用楷体，像手写。延续 Beer 现在的暖色，但更有个人感。</div>
+  </div>
+  <div class="chat">AI 对话</div>
+</section>
+
+<!-- ================= 2 一句话安排 ================= -->
+<section class="v" id="v2">
+  <div class="chrome"><span class="logo">Beer</span><span class="search">搜索 ⌘K</span><span class="right">家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="on">首页</span><span>录音</span><span>素材</span><span>选题</span><span>文章</span><span>发布</span><span>规则</span><span>回收站</span></div>
+  <div class="main">
+    <div class="hero">
+      <h1 class="hi">下午好，今天还有 3 件事</h1>
+      <div class="sub">11 月 12 日 周四 · <b>1 件逾期</b> · 下一件在 38 分钟后</div>
+      <div class="ask"><span class="ph">告诉我要安排什么，或者直接贴一封面试邮件…</span><kbd>⌘J</kbd><span class="go">安排</span></div>
+      <div class="sugs"><span>📋 粘贴面试邮件</span><span>周五前交专栏稿</span><span>每周一 10:00 选题会</span><span>这周还有什么？</span></div>
+    </div>
+    <div class="ruler">
+      <div class="axis"></div>
+      <span class="tick" style="left:0"></span><span class="hr" style="left:0">8:00</span>
+      <span class="tick" style="left:14.3%"></span><span class="hr" style="left:14.3%">10:00</span>
+      <span class="tick" style="left:28.6%"></span><span class="hr" style="left:28.6%">12:00</span>
+      <span class="tick" style="left:42.9%"></span><span class="hr" style="left:42.9%">14:00</span>
+      <span class="tick" style="left:57.1%"></span><span class="hr" style="left:57.1%">16:00</span>
+      <span class="tick" style="left:71.4%"></span><span class="hr" style="left:71.4%">18:00</span>
+      <span class="tick" style="left:85.7%"></span><span class="hr" style="left:85.7%">20:00</span>
+      <span class="tick" style="left:100%"></span><span class="hr" style="left:100%">22:00</span>
+      <div class="blk d" style="left:7.1%;width:6%"><b>读者留言</b>9:00</div>
+      <div class="blk a" style="left:42.9%;width:13%"><b>某公司一面</b>14:00–15:00 · ✉ 13:30</div>
+      <div class="nowl" style="left:38.3%"><span>13:22</span></div>
+    </div>
+    <div class="cards3">
+      <div class="c2">
+        <h3>待办 <em>5</em></h3>
+        <div class="todo"><span class="ck"></span>把《AI 写作工作流》改完第二稿<span class="dl r">昨天</span></div>
+        <div class="todo"><span class="ck"></span>回复编辑的修改意见<span class="dl">今天</span></div>
+        <div class="todo"><span class="ck"></span>交《效率工具》专栏稿<span class="dl o">周五</span></div>
+        <div class="todo"><span class="ck"></span>某公司二面 10:00<span class="dl">周六</span></div>
+        <div class="todo"><span class="ck"></span>整理本周素材 ↻<span class="dl">周日</span></div>
+      </div>
+      <div class="c2">
+        <h3>等你处理 <em>2</em></h3>
+        <div class="todo">📝 《为什么我不再用番茄钟》待确认<span class="dl" style="color:#d9694a">去 →</span></div>
+        <div class="todo">💡 今天的选题简报已生成<span class="dl" style="color:#d9694a">去 →</span></div>
+      </div>
+      <div class="c2">
+        <h3>本周 <em>周一起</em></h3>
+        <div class="big3"><div><b>6</b>新素材</div><div><b>2</b>成稿</div><div><b>1</b>已发布</div></div>
+        <div class="minirec">🎙 读书会-1110 转写中<span class="bar"><i></i></span>62%</div>
+      </div>
+    </div>
+    <div class="note"><b>2 一句话安排</b>：首页正中是一个大输入框，你说一句话或贴一封面试邮件，AI 解析后复述确认再建；下面一条横向的今天时间尺（8:00–22:00），红线是现在；再下面三张卡：待办、等你处理、本周。对话是建日程的主要入口，首页就把它放在最显眼的位置。干净明亮，只在输入框上用一点暖色。</div>
+  </div>
+  <div class="chat">AI 对话</div>
+</section>
+
+<!-- ================= 3 夜间 ================= -->
+<section class="v" id="v3">
+  <div class="chrome"><span class="logo">Beer</span><span class="search">搜索 ⌘K</span><span class="right">家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="on">首页</span><span>录音</span><span>素材</span><span>选题</span><span>文章</span><span>发布</span><span>规则</span><span>回收站</span></div>
+  <div class="main">
+    <div class="cock">
+      <div class="panel">
+        <div class="clock">13:22<small>周四 11/12</small></div>
+        <div class="ring">
+          <svg width="92" height="92" viewBox="0 0 92 92"><circle cx="46" cy="46" r="38" fill="none" stroke="#2a261f" stroke-width="8"/><circle cx="46" cy="46" r="38" fill="none" stroke="#f2b36d" stroke-width="8" stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="150" transform="rotate(-90 46 46)"/><text x="46" y="44" text-anchor="middle" fill="#f6efe4" font-size="20" font-family="ui-monospace,Menlo">38</text><text x="46" y="60" text-anchor="middle" fill="#8f877c" font-size="10">分钟</text></svg>
+          <div><div class="lbl">下一件</div><div class="t">某公司一面</div><div class="s">14:00 · 腾讯会议 123-456</div><div class="s">✉ 13:30 发邮件提醒</div></div>
+        </div>
+        <div class="tiles">
+          <div class="tile r"><b>1</b><span>已逾期</span></div>
+          <div class="tile a"><b>3</b><span>本周到期</span></div>
+          <div class="tile"><b>2</b><span>等你处理</span></div>
+          <div class="tile g"><b>62%</b><span>录音转写中</span></div>
+        </div>
+        <div class="sep">本周产出</div>
+        <div style="font:13px ui-monospace,Menlo,monospace;color:#c9bfb1">素材 6 · 成稿 2 · 发布 1</div>
+      </div>
+      <div class="panel">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><b style="font-size:15px">今天</b><span style="font-size:12px;color:#8f877c">4 件 · 完成 1</span><span style="margin-left:auto;font-size:12px;color:#8f877c;border:1px solid #2a261f;border-radius:8px;padding:3px 10px">＋ 加一条 / 在对话里说</span></div>
+        <div class="tline">
+          <div class="te late"><div class="r1"><span class="tm">昨天截止</span><span class="tx">把《AI 写作工作流》改完第二稿</span></div><div class="mt"><span class="pill">文章</span>↗ 打开</div></div>
+          <div class="te done"><div class="r1"><span class="tm">09:00</span><span class="tx">看昨天的读者留言</span></div><div class="mt">↻ 每天</div></div>
+          <div class="te next"><div class="r1"><span class="tm">14:00–15:00</span><span class="tx"><b>某公司一面</b></span></div><div class="mt"><span class="pill">面试</span>腾讯会议 123-456 · 来自 QQ 邮箱</div></div>
+          <div class="te"><div class="r1"><span class="tm">今天内</span><span class="tx">回复编辑的修改意见</span></div><div class="mt">来自对话</div></div>
+        </div>
+        <div class="sep">接下来</div>
+        <div class="tline">
+          <div class="te"><div class="r1"><span class="tm">周五</span><span class="tx">交《效率工具》专栏稿</span></div></div>
+          <div class="te"><div class="r1"><span class="tm">周六 10:00</span><span class="tx">某公司二面</span></div></div>
+          <div class="te"><div class="r1"><span class="tm">周日</span><span class="tx">整理本周素材 ↻</span></div></div>
+        </div>
+        <div class="sep">等你处理</div>
+        <div class="wait">📝 《为什么我不再用番茄钟》成稿待确认<span>去发布 →</span></div>
+        <div class="wait">💡 今天的选题简报已生成<span>去选题 →</span></div>
+      </div>
+    </div>
+    <div class="note"><b>3 夜间</b>：深色底配琥珀色。左边是一块「仪表」：大时钟、离下一件事还有多少分钟的圆环、四个数字块；右边是一条竖向时间线，逾期是红点，下一件是发光的琥珀点。适合晚上写作、长时间开着 Beer。可以只做成 Beer 的深色模式，跟系统自动切换。</div>
+  </div>
+  <div class="chat">AI 对话</div>
+</section>
+
+<!-- ================= 4 看板 ================= -->
+<section class="v" id="v4">
+  <div class="chrome"><span class="logo">Beer</span><span class="search">搜索 ⌘K</span><span class="right">家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="on">首页</span><span>录音</span><span>素材</span><span>选题</span><span>文章</span><span>发布</span><span>规则</span><span>回收站</span></div>
+  <div class="main">
+    <div class="kbar"><h2>11 月 12 日 周四</h2><span class="s">9 件事 · 1 件逾期 · 2 件等你处理</span><span class="in">＋ 加一条，拖到哪列就是哪天……</span></div>
+    <div class="lanes">
+      <div class="lane late"><h4>已逾期 <em>1</em></h4>
+        <div class="kc r"><b>把《AI 写作工作流》改完第二稿</b><div class="m"><span>昨天截止</span><span>文章</span></div></div>
+      </div>
+      <div class="lane"><h4>今天 <em>3</em></h4>
+        <div class="kc o"><b>某公司一面</b><div class="m"><span>14:00–15:00</span><span>面试</span><span>✉ 13:30</span></div></div>
+        <div class="kc"><b>回复编辑的修改意见</b><div class="m"><span>今天内</span><span>来自对话</span></div></div>
+        <div class="kc g done"><b>看昨天的读者留言</b><div class="m"><span>09:00</span><span>↻ 每天</span></div></div>
+        <div class="addc">＋ 添加</div>
+      </div>
+      <div class="lane"><h4>本周 <em>3</em></h4>
+        <div class="kc y"><b>交《效率工具》专栏稿</b><div class="m"><span>周五截止</span><span>✉ 9:00</span></div></div>
+        <div class="kc o"><b>某公司二面</b><div class="m"><span>周六 10:00</span><span>面试</span></div></div>
+        <div class="kc"><b>整理本周素材，挑下周选题</b><div class="m"><span>周日</span><span>↻ 每周日</span></div></div>
+        <div class="addc">＋ 添加</div>
+      </div>
+      <div class="lane"><h4>以后 / 没排期 <em>3</em></h4>
+        <div class="kc o"><b>某公司终面</b><div class="m"><span>11/20 10:00</span><span>面试</span></div></div>
+        <div class="kc"><b>给读者群做一次问卷</b><div class="m"><span>没排期</span></div></div>
+        <div class="kc"><b>试一下视频号发布</b><div class="m"><span>没排期</span></div></div>
+        <div class="addc">＋ 添加</div>
+      </div>
+      <div class="lane dark"><h4>等你处理 <em>2</em></h4>
+        <div class="kc"><b>为什么我不再用番茄钟</b><div class="m"><span>成稿待确认</span><span>去发布 →</span></div></div>
+        <div class="kc"><b>今天的选题简报</b><div class="m"><span>已生成</span><span>去选题 →</span></div></div>
+      </div>
+    </div>
+    <div class="kfoot"><span>🎙 读书会-1110 转写中 <span class="bar"><i></i></span> 62%</span><span>本周产出：新素材 6 · 成稿 2 · 已发布 1</span></div>
+    <div class="note"><b>4 看板</b>：沿用 A 的暖纸配色，但把分组摊成横向的几列：已逾期 / 今天 / 本周 / 以后。卡片可以拖动，拖到哪列就改成哪天。最右边一列是深色的「等你处理」，和自己的日程分开。录音和本周产出缩成底部一行。适合事情多、喜欢拖来拖去排期的时候。</div>
+  </div>
+  <div class="chat">AI 对话</div>
+</section>
+
+<!-- ================= 5 我的一天 ================= -->
+<section class="v" id="v5">
+  <div class="chrome"><span class="logo">Beer</span><span class="search">搜索 ⌘K</span><span class="right">家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="on">首页</span><span>录音</span><span>素材</span><span>选题</span><span>文章</span><span>发布</span><span>规则</span><span>回收站</span></div>
+  <div class="split">
+    <div class="left5">
+      <h2>写作台</h2>
+      <div class="s">本周新素材 6 · 成稿 2 · 已发布 1</div>
+      <div class="brief">
+        <div><div class="k">今天的选题简报</div><h3>「工具疲劳」：为什么越换工具越低效</h3><p>根据本周 6 条素材和 3 条读者留言生成，另有 2 个备选角度</p></div>
+        <span class="b">打开简报 →</span>
+      </div>
+      <div class="g2">
+        <div class="c5"><h4>等你处理 <em>2</em></h4>
+          <div class="art"><span class="st w">成稿</span>为什么我不再用番茄钟<span style="margin-left:auto;color:#2f6b4f;font-size:12px">去发布 →</span></div>
+          <div class="art"><span class="st">冲突</span>文章/效率工具.md 有编辑冲突<span style="margin-left:auto;color:#2f6b4f;font-size:12px">打开 →</span></div>
+        </div>
+        <div class="c5"><h4>正在写 <em>3</em></h4>
+          <div class="art">AI 写作工作流<span class="pg"><i style="width:70%"></i></span></div>
+          <div class="art">效率工具专栏<span class="pg"><i style="width:40%"></i></span></div>
+          <div class="art">读书会笔记<span class="pg"><i style="width:15%"></i></span></div>
+        </div>
+        <div class="c5" style="grid-column:1/-1;display:flex;gap:12px;align-items:center;font-size:13px;color:#5f6b63">🎙 <b style="color:#1e2a23">录音</b> 读书会-1110.m4a 转写中<span style="flex:1;height:5px;background:#eceae4;border-radius:3px;overflow:hidden"><i style="display:block;width:62%;height:100%;background:#2f6b4f"></i></span>62%</div>
+      </div>
+    </div>
+    <aside class="rail">
+      <div class="dt"><b>12</b><span>周四 · 十一月</span></div>
+      <div class="cal">
+        <span class="h">一</span><span class="h">二</span><span class="h">三</span><span class="h">四</span><span class="h">五</span><span class="h">六</span><span class="h">日</span>
+        <span class="x">27</span><span class="x">28</span><span class="x">29</span><span class="x">30</span><span class="x">31</span><span>1</span><span>2</span>
+        <span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+        <span>10</span><span class="ev">11</span><span class="td">12</span><span class="ev">13</span><span class="ev">14</span><span>15</span><span>16</span>
+        <span>17</span><span>18</span><span>19</span><span class="ev">20</span><span>21</span><span>22</span><span>23</span>
+        <span>24</span><span>25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span>
+      </div>
+      <h5>今天的安排 <em>2</em></h5>
+      <div class="ag done"><span class="tm">09:00</span><div class="bd"><b>看读者留言</b><small>↻ 每天</small></div></div>
+      <div class="ag iv"><span class="tm">14:00</span><div class="bd"><b>某公司一面</b><small>腾讯会议 123-456 · ✉ 13:30</small></div></div>
+      <h5>待办 <em>4</em></h5>
+      <div class="rt"><span class="ck"></span>改完《AI 写作工作流》二稿<span class="dl r">昨天</span></div>
+      <div class="rt"><span class="ck"></span>回复编辑的修改意见<span class="dl">今天</span></div>
+      <div class="rt"><span class="ck"></span>交《效率工具》专栏稿<span class="dl">周五</span></div>
+      <div class="rt"><span class="ck"></span>整理本周素材 ↻<span class="dl">周日</span></div>
+      <div class="radd">＋ 加一条 · 或在对话里说</div>
+    </aside>
+  </div>
+  <div class="note" style="margin-right:46px"><b>5 我的一天</b>：首页主体仍然是写作的事（今天的选题简报、等你处理、正在写的文章、录音），日程收在右边一条「我的一天」侧栏里：小月历（有事的日子带点）、今天的安排、待办。日程是首页的一部分，而不是首页的全部。配色换成米白加墨绿，安静一些。</div>
+  <div class="chat">AI 对话</div>
+</section>
+
+<script>
+function show(v){if(!document.getElementById(v))v='v1';
+document.querySelectorAll('.v').forEach(function(s){s.classList.toggle('on',s.id===v)});
+document.querySelectorAll('.switch a').forEach(function(a){a.classList.toggle('on',a.dataset.v===v)});
+if(location.hash!=='#'+v)history.replaceState(null,'','#'+v);window.scrollTo(0,0)}
+document.querySelectorAll('.switch a').forEach(function(a){a.onclick=function(){show(a.dataset.v)}});
+show((location.hash||'#v1').slice(1));
+</script>
+</body>
+</html>

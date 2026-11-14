@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beer 首页 · 日程方向 B/C/D</title>
+<style>
+:root{--bg:#f3efe8;--paper:#fbf8f3;--line:#e6dfd4;--ink:#2b2621;--ink2:#6f665c;--ink3:#a39a8f;--accent:#d9694a;--accent-soft:#fbe7df;--accent-ink:#b4482b;--bad:#c0463b;--bad-soft:#f8e1de;--warn:#b7791f;--warn-soft:#fbf0d9;--ok:#4f7a4a;--blue:#3b6fd8;--blue-soft:#e3ecfb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB",sans-serif}
+.switch{position:sticky;top:0;z-index:5;display:flex;gap:6px;align-items:center;padding:8px 14px;background:#2b2621;color:#fff;font-size:13px;flex-wrap:wrap}
+.switch a{color:#d8d0c5;text-decoration:none;padding:2px 10px;border-radius:6px}
+.switch a.on{background:var(--accent);color:#fff}
+.switch span{margin-left:auto;color:#a39a8f;font-size:12px}
+.frame{display:none;min-height:calc(100vh - 38px)}
+.frame.on{display:flex}
+.biz{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.top{display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
+.top b{font-size:15px}
+.search{width:240px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px 10px;color:var(--ink3);font-size:13px}
+.top .right{margin-left:auto;font-size:12px;color:var(--ink2)}
+.tabs{display:flex;gap:1px;padding:6px 12px 0;border-bottom:1px solid var(--line)}
+.tab{padding:6px 11px;color:var(--ink2);border:1px solid transparent;border-radius:8px 8px 0 0}
+.tab.on{background:#fff;border-color:var(--line);border-bottom-color:#fff;margin-bottom:-1px;color:var(--ink);font-weight:600}
+.content{flex:1;padding:14px 16px}
+.chat{width:34px;border-left:1px solid var(--line);background:var(--paper);display:flex;justify-content:center;padding-top:12px;color:var(--ink3);font-size:12px;writing-mode:vertical-rl}
+
+.head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.head h1{font-size:20px;margin:0}
+.head .sum{color:var(--ink2)}
+.head .sum b{color:var(--bad)}
+.head .week{margin-left:auto;font-size:12px;color:var(--ink2)}
+.card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.row{display:flex;gap:8px;align-items:center;min-width:0;flex-wrap:wrap}
+.row>b{font-size:14px}
+.muted{color:var(--ink3);font-size:12px}
+.chip{display:inline-block;padding:0 7px;border-radius:999px;background:var(--bg);color:var(--ink2);font-size:12px;white-space:nowrap}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.chip.blue{background:var(--blue-soft);color:var(--blue)}
+.btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 10px;font:inherit;font-size:12px;color:var(--ink);cursor:pointer;white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.link{color:var(--accent-ink);font-size:12px;white-space:nowrap}
+.add{display:flex;gap:6px}
+.add input{flex:1;min-width:0;border:1px dashed var(--line);border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;background:var(--paper);color:var(--ink)}
+.gt{font-size:12px;color:var(--ink2);font-weight:600;padding:2px 0}
+.gt.bad{color:var(--bad)}
+.item{display:flex;gap:9px;align-items:flex-start;padding:6px 8px;border-radius:9px}
+.item:hover{background:var(--paper)}
+.box{flex:none;width:16px;height:16px;border:1.5px solid var(--ink3);border-radius:4px;margin-top:3px}
+.item.done .box{background:var(--ok);border-color:var(--ok)}
+.item.done .t{text-decoration:line-through;color:var(--ink3)}
+.when{flex:none;width:70px;font-size:12px;color:var(--ink2);padding-top:2px;font-variant-numeric:tabular-nums}
+.when.bad{color:var(--bad);font-weight:600}
+.body{flex:1;min-width:0}
+.t{font-weight:600}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:1px}
+.ico{font-size:12px;color:var(--ink2)}
+.task{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--paper);padding:6px 9px;font-size:13px}
+.task b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.rec{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;white-space:nowrap;font-size:12px;color:var(--ink2);border:1px solid var(--line);border-radius:10px;background:#fff;padding:7px 12px}
+.bar{flex:0 0 80px;height:5px;border-radius:3px;background:var(--bg);overflow:hidden}
+.bar i{display:block;height:100%;width:62%;background:var(--accent)}
+.note{margin-top:18px;padding:12px 14px;border:1px dashed var(--line);border-radius:10px;font-size:12px;color:var(--ink2);background:#fff}
+.note b{color:var(--ink)}
+
+/* B：今天时间轴 */
+.b-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(240px,.9fr);gap:12px;align-items:start}
+.weekstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:12px}
+.day{border:1px solid var(--line);border-radius:10px;background:#fff;padding:6px 8px;text-align:center;font-size:12px;color:var(--ink2)}
+.day b{display:block;font-size:16px;color:var(--ink)}
+.day.on{border-color:var(--accent);background:var(--accent-soft)}
+.day.on b{color:var(--accent-ink)}
+.dots{display:flex;gap:3px;justify-content:center;height:6px;margin-top:2px}
+.dots i{width:5px;height:5px;border-radius:50%;background:var(--ink3)}
+.dots i.r{background:var(--accent)}
+.dots i.x{background:var(--bad)}
+.tl{position:relative;padding-left:46px}
+.hr{position:relative;height:38px;border-top:1px solid var(--line);font-size:11px;color:var(--ink3)}
+.hr span{position:absolute;left:-46px;top:-8px;width:38px;text-align:right}
+.ev{position:absolute;left:46px;right:0;border-radius:8px;padding:4px 8px;font-size:12px;border-left:3px solid var(--accent);background:var(--accent-soft);color:var(--accent-ink);overflow:hidden}
+.ev b{display:block;color:var(--ink);font-size:13px}
+.ev.blue{border-left-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+.ev.done{opacity:.55}
+.now{position:absolute;left:40px;right:0;height:0;border-top:2px solid var(--bad)}
+.now::before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
+
+/* C：本周一览 */
+.c-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.col{border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px;min-height:190px;display:flex;flex-direction:column;gap:6px}
+.col.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.col.past{background:var(--paper)}
+.col h4{margin:0;font-size:12px;color:var(--ink2);display:flex;justify-content:space-between}
+.col h4 b{font-size:15px;color:var(--ink)}
+.col.today h4 b{color:var(--accent-ink)}
+.mini{border-radius:7px;padding:4px 6px;font-size:12px;background:var(--bg);line-height:1.4}
+.mini small{display:block;color:var(--ink2);font-size:11px}
+.mini.ev{position:static;border-left:3px solid var(--accent);background:var(--accent-soft)}
+.mini.dl{border-left:3px solid var(--warn);background:var(--warn-soft)}
+.mini.done{opacity:.5;text-decoration:line-through}
+.mini.bad{border-left:3px solid var(--bad);background:var(--bad-soft)}
+.col .plus{margin-top:auto;font-size:12px;color:var(--ink3)}
+.c-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px;align-items:start}
+
+/* D：聚焦今天 */
+.d-wrap{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:14px;align-items:start}
+.next{border-radius:14px;padding:16px 18px;background:linear-gradient(135deg,#2b2621,#4a3f36);color:#fff;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.next .big{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.next .lbl{font-size:12px;color:#d8d0c5}
+.next .t{font-size:17px}
+.next .acts{margin-left:auto;display:flex;gap:6px}
+.next .btn{background:transparent;color:#fff;border-color:#6f665c}
+.stream .item{border-bottom:1px solid var(--bg);border-radius:0}
+.kind{flex:none;width:40px;font-size:11px;text-align:center;border-radius:6px;padding:1px 0;margin-top:2px}
+.k-ev{background:var(--accent-soft);color:var(--accent-ink)}
+.k-todo{background:var(--bg);color:var(--ink2)}
+.k-biz{background:var(--blue-soft);color:var(--blue)}
+.inbox .item{border:1px dashed var(--line);border-radius:10px;background:var(--paper)}
+.fold{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px;color:var(--ink2)}
+@media (max-width:980px){.b-grid,.c-grid,.d-wrap{grid-template-columns:1fr}.c-week{grid-template-columns:repeat(4,minmax(0,1fr))}.chat{display:none}}
+</style>
+</head>
+<body>
+<div class="switch">
+  <b style="margin-right:6px">首页方向</b>
+  <a href="home-schedule.html">A 分组列表（上一版）</a>
+  <a href="#b" data-v="b">B 今天时间轴</a>
+  <a href="#c" data-v="c">C 本周一览</a>
+  <a href="#d" data-v="d">D 聚焦今天</a>
+  <span>同一套 Beer 配色；数据都是假的</span>
+</div>
+
+<!-- ======================= B ======================= -->
+<div class="frame" id="b">
+<div class="biz">
+  <div class="top"><b>Beer</b><span class="search">搜索 ⌘K</span><span class="right">库：~/Obsidian/写作 · 家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="tab on">首页</span><span class="tab">录音</span><span class="tab">素材</span><span class="tab">选题</span><span class="tab">文章</span><span class="tab">发布</span><span class="tab">规则</span><span class="tab">回收站</span></div>
+  <div class="content">
+    <div class="head">
+      <h1>11 月 12 日 周四</h1>
+      <span class="sum">今天 4 件事 · <b>1 件逾期</b> · 2 件等你处理</span>
+      <span class="week">本周产出：新素材 6 · 成稿 2 · 已发布 1</span>
+    </div>
+    <div class="weekstrip">
+      <div class="day">周一<b>9</b><div class="dots"><i></i></div></div>
+      <div class="day">周二<b>10</b><div class="dots"><i></i><i></i></div></div>
+      <div class="day">周三<b>11</b><div class="dots"><i class="x"></i></div></div>
+      <div class="day on">周四<b>12</b><div class="dots"><i class="r"></i><i></i><i></i></div></div>
+      <div class="day">周五<b>13</b><div class="dots"><i></i></div></div>
+      <div class="day">周六<b>14</b><div class="dots"><i class="r"></i></div></div>
+      <div class="day">周日<b>15</b><div class="dots"><i></i></div></div>
+    </div>
+    <div class="b-grid">
+      <div class="card">
+        <div class="row"><b>今天的时间</b><span class="muted">有具体时刻的事</span></div>
+        <div class="tl">
+          <div class="hr"><span>09:00</span></div>
+          <div class="hr"><span>10:00</span></div>
+          <div class="hr"><span>11:00</span></div>
+          <div class="hr"><span>12:00</span></div>
+          <div class="hr"><span>13:00</span></div>
+          <div class="hr"><span>14:00</span></div>
+          <div class="hr"><span>15:00</span></div>
+          <div class="hr"><span>16:00</span></div>
+          <div class="hr"><span>17:00</span></div>
+          <div class="ev done" style="top:0;height:30px">09:00 · ↻ 每天<b>看昨天的读者留言</b></div>
+          <div class="ev blue" style="top:190px;height:60px">14:00–15:00 · 面试 · ✉ 13:30<b>某公司一面（腾讯会议 123-456）</b></div>
+          <div class="now" style="top:122px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row"><b>待办</b><span class="chip">5</span><span class="muted">按截止日期</span></div>
+        <div class="add"><input placeholder="＋ 周五前交稿…"><button class="btn">在对话里说</button></div>
+        <div class="gt bad">已逾期</div>
+        <div class="item"><span class="box"></span><div class="body"><div class="t">改完《AI 写作工作流》第二稿</div><div class="meta"><span class="chip bad">昨天截止</span><span class="chip acc">文章</span></div></div></div>
+        <div class="gt">今天</div>
+        <div class="item"><span class="box"></span><div class="body"><div class="t">回复编辑的修改意见</div><div class="meta"><span class="ico">来自对话</span></div></div></div>
+        <div class="gt">本周</div>
+        <div class="item"><span class="box"></span><div class="body"><div class="t">交《效率工具》专栏稿</div><div class="meta"><span class="chip warn">周五截止</span><span class="ico">✉ 9:00</span></div></div></div>
+        <div class="item"><span class="box"></span><div class="body"><div class="t">整理本周素材，挑下周选题</div><div class="meta"><span class="chip">周日截止</span><span class="ico">↻ 每周日</span></div></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card">
+          <div class="row"><b>等你处理</b><span class="chip bad">2</span></div>
+          <div class="task"><span class="chip warn">成稿</span><b>为什么我不再用番茄钟</b><span class="link">→</span></div>
+          <div class="task"><span class="chip">简报</span><b>11-12 选题简报已生成</b><span class="link">→</span></div>
+        </div>
+        <div class="rec"><b style="color:var(--ink)">录音</b><span>读书会-1110.m4a · 转写中</span><span class="bar"><i></i></span><span>62%</span></div>
+      </div>
+    </div>
+    <div class="note"><b>B 今天时间轴</b>：把「有时刻的日程」和「只有截止日期的待办」拆成两块。左边是今天的时间轴，红线表示现在，面试这种事一眼能看到离现在还有多久；中间是待办；上面一条周一到周日的小日期条，点哪天就看哪天。<br>适合：每天有好几个固定时刻的安排。缺点：时刻少的日子，时间轴大部分是空的。</div>
+  </div>
+</div>
+<div class="chat">AI 对话（已收起）</div>
+</div>
+
+<!-- ======================= C ======================= -->
+<div class="frame" id="c">
+<div class="biz">
+  <div class="top"><b>Beer</b><span class="search">搜索 ⌘K</span><span class="right">库：~/Obsidian/写作 · 家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="tab on">首页</span><span class="tab">录音</span><span class="tab">素材</span><span class="tab">选题</span><span class="tab">文章</span><span class="tab">发布</span><span class="tab">规则</span><span class="tab">回收站</span></div>
+  <div class="content">
+    <div class="head">
+      <h1>本周 · 11/9 – 11/15</h1>
+      <span class="sum">本周 9 件事 · 已完成 3 · <b>逾期 1</b></span>
+      <span class="week">本周产出：新素材 6 · 成稿 2 · 已发布 1 &nbsp; <span class="link">‹ 上周 · 下周 ›</span></span>
+    </div>
+    <div class="c-week">
+      <div class="col past"><h4>周一 <b>9</b></h4><div class="mini done">看读者留言<small>09:00 ↻</small></div></div>
+      <div class="col past"><h4>周二 <b>10</b></h4><div class="mini done">看读者留言<small>09:00 ↻</small></div><div class="mini done">发《番茄钟》到公众号<small>截止 ↻ 每周二</small></div></div>
+      <div class="col past"><h4>周三 <b>11</b></h4><div class="mini bad">改完《AI 写作工作流》二稿<small>截止 · 已逾期</small></div></div>
+      <div class="col today"><h4>周四 <b>12</b></h4><div class="mini done">看读者留言<small>09:00 ↻</small></div><div class="mini ev">某公司一面<small>14:00 · ✉ 13:30</small></div><div class="mini">回复编辑修改意见<small>今天截止</small></div><span class="plus">＋ 添加</span></div>
+      <div class="col"><h4>周五 <b>13</b></h4><div class="mini dl">交《效率工具》专栏稿<small>截止 · ✉ 9:00</small></div><span class="plus">＋</span></div>
+      <div class="col"><h4>周六 <b>14</b></h4><div class="mini ev">某公司二面<small>10:00 · ✉ 9:30</small></div><span class="plus">＋</span></div>
+      <div class="col"><h4>周日 <b>15</b></h4><div class="mini">整理本周素材<small>截止 ↻ 每周日</small></div><span class="plus">＋</span></div>
+    </div>
+    <div class="c-grid">
+      <div class="card">
+        <div class="row"><b>没排日期的待办</b><span class="chip">3</span><span class="muted">想到就记，有空再排</span></div>
+        <div class="add"><input placeholder="＋ 加一条，回车保存"><button class="btn">在对话里说</button></div>
+        <div class="item"><span class="box"></span><div class="body"><div class="t">给读者群做一次问卷</div></div></div>
+        <div class="item"><span class="box"></span><div class="body"><div class="t">把旧文章按主题整理成合集</div></div></div>
+        <div class="item"><span class="box"></span><div class="body"><div class="t">试一下视频号发布</div></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card">
+          <div class="row"><b>等你处理</b><span class="chip bad">2</span></div>
+          <div class="task"><span class="chip warn">成稿</span><b>为什么我不再用番茄钟</b><span class="link">去处理 →</span></div>
+          <div class="task"><span class="chip">新选题简报</span><b>11-12 的选题简报已生成</b><span class="link">去处理 →</span></div>
+        </div>
+        <div class="rec"><b style="color:var(--ink)">录音</b><span>读书会-1110.m4a · 转写中</span><span class="bar"><i></i></span><span>62%</span><span class="link" style="margin-left:auto">去录音页 →</span></div>
+      </div>
+    </div>
+    <div class="note"><b>C 本周一览</b>：首页上半部分是周一到周日七列，一周的安排一眼看完（像纸质周计划本）；下半部分是「没排日期的待办」和等你处理。<br>适合：习惯按周规划，比如固定周二发文、周日复盘。缺点：一天事情多时，每列会很挤；还有一点像日历。</div>
+  </div>
+</div>
+<div class="chat">AI 对话（已收起）</div>
+</div>
+
+<!-- ======================= D ======================= -->
+<div class="frame" id="d">
+<div class="biz">
+  <div class="top"><b>Beer</b><span class="search">搜索 ⌘K</span><span class="right">库：~/Obsidian/写作 · 家里在线 · 限额 62%</span></div>
+  <div class="tabs"><span class="tab on">首页</span><span class="tab">录音</span><span class="tab">素材</span><span class="tab">选题</span><span class="tab">文章</span><span class="tab">发布</span><span class="tab">规则</span><span class="tab">回收站</span></div>
+  <div class="content">
+    <div class="d-wrap">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="head" style="margin:0">
+          <h1>下午好 · 11 月 12 日 周四</h1>
+          <span class="sum">今天 6 件事，做完 1 件</span>
+        </div>
+        <div class="next">
+          <div><div class="lbl">下一件</div><div class="big">1:38</div><div class="lbl">小时后</div></div>
+          <div><div class="lbl">14:00 – 15:00 · 面试</div><div class="t"><b>某公司一面</b></div><div class="lbl">腾讯会议 123-456 · ✉ 13:30 会发邮件提醒</div></div>
+          <div class="acts"><span class="btn">复制会议号</span><span class="btn">打开详情</span></div>
+        </div>
+        <div class="card stream">
+          <div class="row"><b>今天要做的</b><span class="muted">日程、待办和工作台里等你处理的事，放在一起</span></div>
+          <div class="add"><input placeholder="＋ 加一条，比如「周五前交稿」"><button class="btn">在对话里说</button></div>
+          <div class="item"><span class="box"></span><span class="kind k-todo">待办</span><div class="body"><div class="t">改完《AI 写作工作流》第二稿</div><div class="meta"><span class="chip bad">昨天截止</span></div></div></div>
+          <div class="item"><span class="box"></span><span class="kind k-biz">发布</span><div class="body"><div class="t">确认《为什么我不再用番茄钟》的发布版本</div><div class="meta"><span class="chip warn">成稿</span><span class="link">去发布页 →</span></div></div></div>
+          <div class="item"><span class="box"></span><span class="kind k-ev">14:00</span><div class="body"><div class="t">某公司一面</div><div class="meta"><span class="chip">面试</span><span class="ico">✉ 13:30</span></div></div></div>
+          <div class="item"><span class="box"></span><span class="kind k-todo">待办</span><div class="body"><div class="t">回复编辑的修改意见</div><div class="meta"><span class="ico">今天截止 · 来自对话</span></div></div></div>
+          <div class="item"><span class="box"></span><span class="kind k-biz">选题</span><div class="body"><div class="t">看今天的选题简报</div><div class="meta"><span class="link">去选题页 →</span></div></div></div>
+          <div class="item done"><span class="box"></span><span class="kind k-ev">09:00</span><div class="body"><div class="t">看昨天的读者留言</div><div class="meta"><span class="ico">↻ 每天</span></div></div></div>
+        </div>
+        <div class="fold"><span>明天及以后 · 4 件（周五交专栏稿、周六二面…）</span><span class="link">展开 ▾</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card inbox">
+          <div class="row"><b>待确认</b><span class="chip blue">1</span><span class="muted">从 QQ 邮箱识别出来的</span></div>
+          <div class="item" style="flex-direction:column;gap:4px">
+            <div class="t">某公司 · 终面邀请</div>
+            <div class="muted">11/20 周五 10:00 · 线下 · 发件人 hr@…</div>
+            <div class="row"><span class="btn pri">加入日程</span><span class="btn">忽略</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="row"><b>本周</b><span class="muted" style="margin-left:auto">周一起</span></div>
+          <div class="row" style="justify-content:space-between;font-size:13px"><span>新素材 <b>6</b></span><span>成稿 <b>2</b></span><span>已发布 <b>1</b></span></div>
+          <div class="row" style="font-size:12px;color:var(--ink2)">日程完成 3 / 9</div>
+        </div>
+        <div class="rec"><b style="color:var(--ink)">录音</b><span>读书会-1110 · 转写中</span><span class="bar"><i></i></span><span>62%</span></div>
+      </div>
+    </div>
+    <div class="note" style="max-width:1080px;margin:18px auto 0"><b>D 聚焦今天</b>：最上面一张深色卡片只放「下一件事」和倒计时；下面一条「今天要做的」把日程、待办、工作台里等你处理的事（待确认发布、选题简报）混在同一个列表里，用左边的小标签区分；明天以后默认收起。右边是从 QQ 邮箱识别出来、等你点一下才加入日程的面试邀请。<br>适合：只想打开就知道「现在该干嘛」。缺点：看不到一周的全貌；「等你处理」不再单独成块。</div>
+  </div>
+</div>
+<div class="chat">AI 对话（已收起）</div>
+</div>
+
+<script>
+function show(){var v=(location.hash||'#b').slice(1);if(!document.getElementById(v))v='b';
+document.querySelectorAll('.frame').forEach(function(f){f.classList.toggle('on',f.id===v)});
+document.querySelectorAll('.switch a[data-v]').forEach(function(a){a.classList.toggle('on',a.dataset.v===v)});}
+window.addEventListener('hashchange',show);show();
+</script>
+</body>
+</html>

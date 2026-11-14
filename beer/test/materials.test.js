@@ -7,7 +7,7 @@ import { startBeer, listFiles } from './helpers/beer.js'
 // 默认标签表（工单 #11）：库里没有标签表时按这一份返回。
 const DEFAULT_TAGS = ['AI 工具', 'Obsidian', '笔记方法', '写作', '效率', '自动化', '费用', '内容运营', '读书', '生活']
 // 默认类型集合：和现有条目里的类型合并，供筛选按钮用。
-const DEFAULT_TYPES = ['录音', '链接', '图片', '文字', 'PDF', '手动']
+const DEFAULT_TYPES = ['录音', '视频', '链接', '图片', '文字', 'PDF', '手动']
 
 const q = params => '?' + new URLSearchParams(params).toString()
 // listFiles 在 Windows 上返回反斜杠；测试里统一成库内相对路径（/ 分隔）。
@@ -308,7 +308,7 @@ test('新建手动素材：写成 内容库/素材/<日期>-<名称>/index.md，
     '内容库/素材/说明.md',
   ])
   const guide = await readFile(join(beer.vault, '内容库/素材/说明.md'), 'utf8')
-  assert.match(guide, /类型：录音、链接、图片、文字、PDF、手动/)
+  assert.match(guide, /类型：录音、视频、链接、图片、文字、PDF、手动/)
   assert.match(guide, /标签表\.md/)
 
   // 同名再建一条：文件夹自动加序号，不覆盖。

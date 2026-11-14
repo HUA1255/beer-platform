@@ -1,6 +1,6 @@
 // dsh 插件入口：只做接线。业务都在 app.js 和 modules/ 里，测试不经过这里也能跑。
 //
-// 除了 HTTP 面板接口，这里还把 AI 工具注册给宿主（#12 素材导入、#22 录音转录），
+// 除了 HTTP 面板接口，这里还把 AI 工具注册给宿主（#12 素材导入、#22 录音转录、#44 邮件提醒），
 // DSH Desktop 对话里的 AI 可以直接调用。执行逻辑在 modules/ 里，这里只做
 // defineTool 包装和注册。
 import { createBeerContext, createBeerHandler, API_PREFIX } from './app.js'
@@ -9,6 +9,8 @@ import { keychainStore } from './secrets.js'
 import { createSaveMaterialTool } from './modules/material-import.js'
 import { Config } from './config.js'
 import { submitFromPath, toolStatus, toolResult } from './modules/recordings.js'
+import { registerReminderTools } from './modules/reminders.js'
+import { registerScheduleTools } from './modules/schedule-tools.js'
 
 export const name = 'beer'
 export const inject = ['webServer', 'connection']
@@ -47,6 +49,12 @@ export function apply(ctx, config) {
   // 转录三件套（#22）：提交、查进度、取结果。registerRecordingTools 自己 import defineTool，
   // 返回的清理函数会随插件卸载注销工具。
   ctx.inject?.(['tools'], toolsCtx => registerRecordingTools(toolsCtx, context))
+
+  // 邮件提醒三件套（#44）：建、查、取消，调云端提醒服务（cloud/reminder）。
+  ctx.inject?.(['tools'], toolsCtx => registerReminderTools(toolsCtx, context))
+
+  // 日程五件套（#53）：建、查、改、完成、删除，写库根目录 日程.md。
+  ctx.inject?.(['tools'], toolsCtx => registerScheduleTools(toolsCtx, context))
 }
 
 /** tool 的输出统一是 { text } 对象，render 只把这段文本交给模型。 */

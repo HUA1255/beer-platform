@@ -8,6 +8,7 @@ import { execFile, spawn } from 'node:child_process'
 /** Beer 用到的密钥（钥匙串账号名）。 */
 export const SECRET_NAMES = [
   'home-api-key', // Mac mini 家里服务的访问密钥
+  'reminder-api-key', // 云端提醒服务的访问密钥
   'rin-admin-username', // Rin 博客管理员账号（发布时自动登录换令牌）
   'rin-admin-password', // Rin 博客管理员密码
   'opencode-go-api-key', // opencode go 的 API key（查限额）

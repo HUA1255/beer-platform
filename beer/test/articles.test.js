@@ -134,7 +134,7 @@ const BODY = '正文第一段，保留原样。\n\n## 小标题\n\n正文第二�
 const STATUS_NOTE = ARTICLES + '/2026-11-05-笔记搬家/index.md'
 const STATUS_CONTENT = `---\n标题: 笔记搬家\n状态: 选题\n日期: 2026-11-05\n---\n\n# 笔记搬家\n\n${BODY}`
 
-test('改状态：选题 → 草稿 → 成稿只在三者之间改，只动状态行，正文逐字不变', async t => {
+test('改状态：选题 → 草稿 → 成稿只在三者之间改，只动状态和状态时间两行，正文逐字不变', async t => {
   const beer = await startBeer(t, { now: fixedNow, vault: { [STATUS_NOTE]: STATUS_CONTENT } })
 
   for (const status of ['草稿', '成稿', '选题']) {
@@ -144,11 +144,34 @@ test('改状态：选题 → 草稿 → 成稿只在三者之间改，只动状�
     assert.equal(res.body.status, status)
     assert.equal(
       await readFile(join(beer.vault, STATUS_NOTE), 'utf8'),
-      STATUS_CONTENT.replace('状态: 选题', `状态: ${status}`),
+      STATUS_CONTENT.replace('状态: 选题', `状态: ${status}\n状态时间: ${fixedNow().toISOString()}`),
     )
   }
   // 正文没有任何平台版本被生成
   assert.deepEqual(await vaultFiles(beer), [STATUS_NOTE])
+})
+
+test('改状态：把 状态时间 写进 frontmatter，再改只更新这一行，正文逐字不变', async t => {
+  let now = new Date(2026, 10, 6, 10, 30, 0)
+  const beer = await startBeer(t, { now: () => now, vault: { [STATUS_NOTE]: STATUS_CONTENT } })
+
+  const first = await beer.api('POST', '/articles/status', { path: STATUS_NOTE, status: '草稿' })
+  assert.equal(first.status, 200)
+  assert.equal(
+    await readFile(join(beer.vault, STATUS_NOTE), 'utf8'),
+    STATUS_CONTENT.replace('状态: 选题', `状态: 草稿\n状态时间: ${now.toISOString()}`),
+  )
+
+  now = new Date(2026, 10, 8, 21, 5, 0)
+  const second = await beer.api('POST', '/articles/status', { path: STATUS_NOTE, status: '成稿' })
+  assert.equal(second.status, 200)
+  const file = await readFile(join(beer.vault, STATUS_NOTE), 'utf8')
+  assert.equal(
+    file,
+    STATUS_CONTENT.replace('状态: 选题', `状态: 成稿\n状态时间: ${now.toISOString()}`),
+  )
+  assert.equal(file.match(/^状态时间:/gm)?.length, 1, '只能有一行 状态时间')
+  assert.ok(file.includes(BODY), '正文逐字不变')
 })
 
 test('改成成稿：返回询问是否生成平台版本，但不生成任何平台版本、不调模型', async t => {

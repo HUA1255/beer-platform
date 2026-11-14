@@ -1,6 +1,6 @@
 // 文章：在 `内容库/文章/` 下新建条目、列条目、改状态、改标题、归档、删除，以及给 AI 帮手生成 prompt。
 //   POST /api/beer/articles { title }             → 201 { path, folder, title, status: '选题' }
-//   GET  /api/beer/articles?status=&includeArchived=1 → { articles: [{ path, folder, title, status, date, modifiedAt, archived }] }
+//   GET  /api/beer/articles?status=&includeArchived=1 → { articles: [{ path, folder, title, status, date, modifiedAt, statusTime, words, archived }] }
 //   POST /api/beer/articles/status { path, status }   → { path, status, askGeneratePlatformVersions? }
 //   POST /api/beer/articles/title { path, title }     → { path, title }
 //   POST /api/beer/articles/archive { path }          → { path, folder }
@@ -8,7 +8,9 @@
 //   GET  /api/beer/articles/assist?path=&kind=outline|facts|counter|titles → { prompt }
 //
 // 条目 = `内容库/文章/<YYYY-MM-DD>-<名称>/index.md`。主稿正文只由用户写：
-// 改状态只动 frontmatter 的 `状态:` 行，改标题只动正文第一个 `# ` 行，程序不写正文其他内容。
+// 改状态只动 frontmatter 的 `状态:` 和 `状态时间:` 两行，改标题只动正文第一个 `# ` 行，
+// 程序不写正文其他内容。`状态时间:` 是这次改状态的时间（ISO），首页「等了几天」和「确认时间」都按它算；
+// 旧文章没有这个字段时首页退回文件修改时间（见 README）。
 // 文件读写一律经 library.js 的 locate / listFolder / readNote / createNote / saveNote；
 // 删除复用 trash.js 的 moveToTrash，归档只在库内移动文件夹。
 import { lstat, mkdir, rename } from 'node:fs/promises'
@@ -16,10 +18,13 @@ import { basename, dirname } from 'node:path'
 import { HttpError, reply } from '../http/router.js'
 import { createNote, listFolder, locate, readNote, saveNote } from './library.js'
 import { moveToTrash } from './trash.js'
+import { bodyOf } from '../platform-versions.js'
 import { localDate } from '../dates.js'
 
 export const ARTICLES_DIR = '内容库/文章'
 export const ARCHIVE_DIR = ARTICLES_DIR + '/_归档'
+/** 记录这次改状态的时间，首页算「等了几天」和「确认时间」用。 */
+export const STATUS_TIME_KEY = '状态时间'
 /** 三个只能由写作流程进入的状态；「已确认」「已发布」只能由发布流程改。 */
 export const STATUS_TOPIC = '选题'
 export const STATUS_DRAFT = '草稿'
@@ -124,10 +129,27 @@ async function readArticleFolders(ctx, dir, archived) {
       status: meta['状态'] || '',
       date: meta['日期'] || datePrefix(entry.name),
       modifiedAt: note.modifiedAt,
+      // 旧文章没有 状态时间 时为 null，由首页决定退回文件修改时间。
+      statusTime: statusTimeOf(meta),
+      // 字数 = 正文去掉空白后的字符数（不含 frontmatter），首页「成稿待确认」那一行用。
+      words: countWords(note.content),
       archived,
     })
   }
   return articles
+}
+
+/** frontmatter 里能解析的 `状态时间:`（统一成 ISO）；没有或解析不了返回 null。 */
+export function statusTimeOf(meta) {
+  const raw = meta?.[STATUS_TIME_KEY]
+  if (typeof raw !== 'string' || !raw.trim()) return null
+  const ms = Date.parse(raw)
+  return Number.isNaN(ms) ? null : new Date(ms).toISOString()
+}
+
+/** 正文字数：去掉 frontmatter 和空白后的字符数（Markdown 符号也算，口径固定好比较）。 */
+export function countWords(content) {
+  return [...bodyOf(content)].filter(ch => !/\s/u.test(ch)).length
 }
 
 // ---- 改状态 ----
@@ -141,7 +163,7 @@ async function updateStatus(ctx, rawPath, status, baseVersion) {
     const current = meta['状态'] || ''
     if (status === STATUS_CONFIRMED || status === STATUS_PUBLISHED) throw statusLocked()
     if (!MANUAL_STATUSES.includes(current)) throw statusLocked(current)
-    const content = withStatusLine(note.content, status)
+    const content = withStatusLine(note.content, status, ctx.now().toISOString())
     const saved = await saveNote(ctx, path, content, versionOrCurrent(baseVersion, note.version))
     if (saved.conflict) return editConflict(saved.current)
     const body = { path, status }
@@ -157,17 +179,35 @@ function statusLocked(current) {
     : '「已确认」「已发布」只能由发布流程改，不能手动切换')
 }
 
-/** 只替换 frontmatter 里的 `状态:` 行，正文和别的属性逐字不动。发布流程也复用它。 */
-export function withStatusLine(content, status) {
+/**
+ * 替换 frontmatter 里的 `状态:` 行，并把 `状态时间:` 写成这次改状态的时间（没有就插在状态行后面）。
+ * 正文和别的属性逐字不动。发布流程也复用它（成稿 → 已确认 → 已发布）。
+ */
+export function withStatusLine(content, status, statusTime) {
   const { lines, eol, end } = splitFrontmatter(content)
   if (end < 0) throw new HttpError(409, 'frontmatter_missing', '这篇文章开头没有属性区（frontmatter），没有改状态')
+  let statusIndex = -1
   for (let i = 1; i < end; i++) {
     if (/^状态\s*:/.test(lines[i])) {
       lines[i] = `状态: ${status}`
-      return lines.join(eol)
+      statusIndex = i
+      break
     }
   }
-  throw new HttpError(409, 'status_missing', '文章开头的属性区里没有「状态:」这一行，没有改')
+  if (statusIndex < 0) throw new HttpError(409, 'status_missing', '文章开头的属性区里没有「状态:」这一行，没有改')
+  if (statusTime) writeStatusTimeLine(lines, end, statusIndex, statusTime)
+  return lines.join(eol)
+}
+
+/** 有 `状态时间:` 就替换那一行，没有就插在 `状态:` 后面；旧文章不会因为重复改状态多出好几行。 */
+function writeStatusTimeLine(lines, end, statusIndex, statusTime) {
+  for (let i = 1; i < end; i++) {
+    if (/^状态时间\s*:/.test(lines[i])) {
+      lines[i] = `${STATUS_TIME_KEY}: ${statusTime}`
+      return
+    }
+  }
+  lines.splice(statusIndex + 1, 0, `${STATUS_TIME_KEY}: ${statusTime}`)
 }
 
 /** 读出文章的 index.md（也接受条目文件夹路径），并解析开头属性。 */

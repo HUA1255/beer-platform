@@ -270,7 +270,7 @@ test('选题简报：模型不可用又没有当天文件时不写半成品；�
   assert.deepEqual(await readFile(join(beer.vault, BRIEF_PATH)), before)
 })
 
-test('选角度建选题：新建状态为「选题」的文章，正文只有 # 标题，frontmatter 带素材链接', async t => {
+test('选角度建选题：新建状态为「选题」的文章，正文是 # 标题加「为什么值得写」引用，frontmatter 带素材链接', async t => {
   const model = await startFakeModel(t)
   const beer = await newBeer(t, model)
   await beer.api('GET', '/topics?ensure=1')
@@ -285,6 +285,7 @@ test('选角度建选题：新建状态为「选题」的文章，正文只有 #
   assert.equal(res.body.title, '小团队别先上自动化')
   assert.equal(res.body.status, '选题')
   assert.deepEqual(res.body.materials, [MATERIAL_MEETING, MATERIAL_FEEDBACK])
+  assert.deepEqual(res.body.skipped, [])
   assert.match(res.body.path, /^内容库\/文章\/2026-11-06-小团队别先上自动化\/index\.md$/)
 
   const content = await readFile(join(beer.vault, res.body.path), 'utf8')
@@ -293,7 +294,7 @@ test('选角度建选题：新建状态为「选题」的文章，正文只有 #
   assert.equal(meta['状态'], '选题')
   assert.equal(meta['日期'], '2026-11-06')
   assert.deepEqual(materialLines(content), [MATERIAL_MEETING, MATERIAL_FEEDBACK])
-  assert.equal(body, '# 小团队别先上自动化\n')
+  assert.equal(body, '# 小团队别先上自动化\n\n> 为什么值得写：周会里反复提到流程比工具重要。\n')
 
   // 选题分页同时列出状态为「选题」的文章。
   const topics = await beer.api('GET', '/topics?ensure=1')
@@ -321,6 +322,45 @@ test('选角度建选题：素材也能按标题认出来；不存在的素材�
   assert.equal(missing.status, 400)
   assert.equal(missing.body.error.code, 'material_missing')
   assert.deepEqual(await vaultFiles(beer), before)
+})
+
+test('选角度建选题：skipMissing 时跳过笔记路径和不存在的素材，照样建并列出 skipped', async t => {
+  const model = await startFakeModel(t)
+  const beer = await newBeer(t, model)
+
+  const res = await beer.api('POST', '/topics/articles', {
+    title: '笔记混进了素材引用',
+    materials: [MATERIAL_MEETING, '读书笔记/2026-11-03-卡片笔记', '没有这个标题', '读者来信'],
+    skipMissing: true,
+  })
+  assert.equal(res.status, 201)
+  assert.deepEqual(res.body.materials, [MATERIAL_MEETING, MATERIAL_FEEDBACK])
+  assert.deepEqual(res.body.skipped, ['读书笔记/2026-11-03-卡片笔记', '没有这个标题'])
+  const content = await readFile(join(beer.vault, res.body.path), 'utf8')
+  assert.deepEqual(materialLines(content), [MATERIAL_MEETING, MATERIAL_FEEDBACK])
+  assert.equal(parseNote(content).body, '# 笔记混进了素材引用\n')
+
+  // 全部对不上时也照样建，只是没有 素材: 字段。
+  const none = await beer.api('POST', '/topics/articles', {
+    title: '全是笔记', materials: ['读书笔记/2026-11-03-卡片笔记'], skipMissing: true,
+  })
+  assert.equal(none.status, 201)
+  assert.deepEqual(none.body.materials, [])
+  assert.deepEqual(none.body.skipped, ['读书笔记/2026-11-03-卡片笔记'])
+  assert.equal(await readFile(join(beer.vault, none.body.path), 'utf8'),
+    '---\n标题: 全是笔记\n状态: 选题\n日期: 2026-11-06\n---\n\n# 全是笔记\n')
+})
+
+test('简报提示词：明确笔记不能填进 materials', async t => {
+  let prompt = ''
+  const model = await startFakeModel(t, (_n, body) => {
+    prompt = body.messages.map(m => m.content).join('\n')
+    return JSON.stringify({ angles: ANGLES })
+  })
+  const beer = await newBeer(t, model)
+  await beer.api('GET', '/topics?ensure=1')
+  assert.match(prompt, /「笔记」一节里的路径不是素材，不要填进 materials/)
+  assert.match(prompt, /## 笔记（每个只给前 400 字；只作参考，不能填进 materials）/)
 })
 
 test('多选素材放进选题：合并去重，正文和其余 frontmatter 逐字不变，素材一侧不写反向记录', async t => {

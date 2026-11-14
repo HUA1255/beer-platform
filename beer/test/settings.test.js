@@ -7,7 +7,7 @@ import { keychainStore } from '../src/secrets.js'
 
 test('设置：返回注入的插件配置项和各密钥是否已存，不泄露密钥本身', async t => {
   const beer = await startBeer(t, {
-    config: { homeApiBase: 'http://home.test:8787', rinApiBase: 'https://blog.test', opencodeGoBase: 'https://go.test', audioCacheLimitGB: 3 },
+    config: { homeApiBase: 'http://home.test:8787', reminderApiBase: 'https://remind.test', rinApiBase: 'https://blog.test', opencodeGoBase: 'https://go.test', audioCacheLimitGB: 3 },
     secrets: { 'home-api-key': 'super-secret-home' },
   })
 
@@ -16,12 +16,14 @@ test('设置：返回注入的插件配置项和各密钥是否已存，不泄�
   assert.equal(res.status, 200)
   assert.deepEqual(res.body.config, {
     homeApiBase: 'http://home.test:8787',
+    reminderApiBase: 'https://remind.test',
     rinApiBase: 'https://blog.test',
     opencodeGoBase: 'https://go.test',
     audioCacheLimitGB: 3,
   })
   assert.deepEqual(res.body.secrets, {
     'home-api-key': 'present',
+    'reminder-api-key': 'missing',
     'rin-admin-username': 'missing',
     'rin-admin-password': 'missing',
     'opencode-go-api-key': 'missing',

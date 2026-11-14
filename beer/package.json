@@ -1,6 +1,6 @@
 {
   "name": "beer-workbench",
-  "version": "0.1.13",
+  "version": "0.1.22",
   "description": "Beer：录音、素材、选题、文章、发布都在一个 DSH Desktop 工作台里完成，内容落在本机 Obsidian 库",
   "type": "module",
   "license": "MIT",

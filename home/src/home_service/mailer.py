@@ -10,9 +10,20 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 
+import certifi
+
 log = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 30.0
+
+
+def _tls_context() -> ssl.SSLContext:
+    """用 certifi 的根证书校验 SMTP 服务器。
+
+    uv 装的 Python 在 macOS 上不读系统钥匙串里的根证书，默认上下文校验 smtp.qq.com
+    会报 CERTIFICATE_VERIFY_FAILED（2026-11-11 在 Mac mini 上实测）。httpx 一直用的就是 certifi。
+    """
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 class MailError(Exception):
@@ -43,14 +54,14 @@ class Mailer:
         try:
             if self.security == "ssl":
                 with smtplib.SMTP_SSL(self.host, self.port, timeout=TIMEOUT_SECONDS,
-                                      context=ssl.create_default_context()) as smtp:
+                                      context=_tls_context()) as smtp:
                     self._login(smtp)
                     smtp.send_message(msg)
             else:
                 with smtplib.SMTP(self.host, self.port, timeout=TIMEOUT_SECONDS) as smtp:
                     if self.security == "starttls":
                         smtp.ehlo()
-                        smtp.starttls(context=ssl.create_default_context())
+                        smtp.starttls(context=_tls_context())
                         smtp.ehlo()
                     self._login(smtp)
                     smtp.send_message(msg)

@@ -3,7 +3,10 @@
 //   GET  /api/beer/topics?ensure=1                → { date, briefPath, exists, content, angles, topics }
 //        ensure=1 时当天简报不存在就生成（模拟「每天第一次打开」）；已存在直接返回，不调模型。
 //   POST /api/beer/topics/brief/regenerate        → 同上（强制重新生成并覆盖当天文件）
-//   POST /api/beer/topics/articles { title, why?, materials? } → 201 { path, title, status, materials }
+//   POST /api/beer/topics/articles { title, why?, materials?, skipMissing? }
+//        → 201 { path, title, status, materials, skipped }
+//        skipMissing=true（从 AI 角度建）时对不上的素材跳过并在 skipped 里列出；否则任一条对不上就 400、不建。
+//        why 非空时写在正文标题下面一行引用「为什么值得写」。
 //   POST /api/beer/topics/materials { path, materials }        → { path, materials }
 //   GET  /api/beer/topics/discuss?angle=&why=     → { prompt }（只拼 prompt，不调模型）
 //
@@ -232,6 +235,7 @@ function briefMessages(date, input) {
     '只输出一个 JSON 对象，不要输出解释、前后缀或代码块，格式：',
     '{"angles":[{"title":"角度标题","why":"为什么值得写","materials":["素材路径或标题"]}]}',
     `angles 给 3 到 6 个；materials 只填下面给出的素材路径或标题，找不到对应素材就填空数组。`,
+    'materials 只能填「读者反馈」「其他素材」两节里的素材；「笔记」一节里的路径不是素材，不要填进 materials。',
     '不要使用热点、新闻或任何联网信息，只依据下面给出的内容。',
   ].join('\n')
 
@@ -244,7 +248,7 @@ function briefMessages(date, input) {
   if (others.length) parts.push(...others.map(entry => materialBlock(entry)))
   else parts.push('（最近 30 天没有其他素材）')
   parts.push('')
-  parts.push('## 笔记（每个只给前 400 字）')
+  parts.push('## 笔记（每个只给前 400 字；只作参考，不能填进 materials）')
   if (input.notes.length) {
     for (const note of input.notes) parts.push(`- 路径：${note.path}`, `  摘录：${note.excerpt}`)
   } else {
@@ -398,16 +402,28 @@ function stringList(value) {
 
 // ---- 建选题与放素材 ----
 
-/** 选中一个角度：新建「选题」文章，正文只有 `# 标题`，frontmatter 写素材链接。 */
+/**
+ * 新建「选题」文章：正文是 `# 标题`（有 why 时下面加一行引用），frontmatter 写素材链接。
+ * skipMissing=true 时对不上的素材跳过（模型给的引用可能是笔记或不存在的条目），不让整个选题建不出来。
+ */
 async function createTopicArticle(ctx, body) {
-  const materials = await resolveMaterials(ctx, body.materials)
+  const skipped = []
+  const materials = await resolveMaterials(ctx, body.materials, body.skipMissing === true ? skipped : null)
+  const why = oneLine(body.why).slice(0, 500)
   const created = await createArticle(ctx, body.title)
-  if (materials.length) await writeArticleMaterials(ctx, created.path, materials)
+  if (materials.length || why) {
+    const note = await readNote(ctx, created.path)
+    let content = materials.length ? withMaterials(note.content, materials) : note.content
+    if (why) content = content.replace(/\n*$/, '') + `\n\n> 为什么值得写：${why}\n`
+    const saved = await saveNote(ctx, created.path, content, note.version)
+    if (saved.conflict) throw new HttpError(409, 'edit_conflict', '这篇文章刚建好就被别处改过，没有写入素材')
+  }
   return {
     path: created.path,
     title: created.title,
     status: created.status,
-    materials: materials.length ? materials : [],
+    materials,
+    skipped,
   }
 }
 
@@ -509,9 +525,10 @@ function readMaterialTargets(content) {
 /**
  * 校验并规范化一组素材：接受素材条目路径（`内容库/素材/<条目>`、`<条目>/index.md`、
  * `<条目>.md` 或 `[[…]]` 链接），也接受素材标题（模型给的是「路径或标题」）。
- * 不认识的素材 → 400 material_missing；返回去重后的库内条目路径（不带 .md）。
+ * 不认识的素材 → 400 material_missing；传了 skipped 数组时改为记进 skipped 并跳过。
+ * 返回去重后的库内条目路径（不带 .md）。
  */
-async function resolveMaterials(ctx, raw) {
+async function resolveMaterials(ctx, raw, skipped = null) {
   if (raw === undefined || raw === null) return []
   if (!Array.isArray(raw)) throw new HttpError(400, 'materials_invalid', 'materials 必须是素材路径或标题组成的数组')
   if (raw.length > 50) throw new HttpError(400, 'materials_invalid', '一次最多放 50 条素材')
@@ -522,15 +539,17 @@ async function resolveMaterials(ctx, raw) {
     const text = item.trim()
     if (text.includes('/')) {
       const target = await materialEntryTarget(ctx, text)
-      if (!target) throw new HttpError(400, 'material_missing', `素材「${text}」不在库里，没有写入`)
-      addTarget(out, target)
+      if (target) addTarget(out, target)
+      else if (skipped) skipped.push(text)
+      else throw new HttpError(400, 'material_missing', `素材「${text}」不在库里，没有写入`)
       continue
     }
     entries ??= await listMaterialEntries(ctx)
     const match = entries.find(entry => entry.title === text)
       ?? entries.find(entry => entry.title.includes(text) || text.includes(entry.title))
-    if (!match) throw new HttpError(400, 'material_missing', `没有标题是「${text}」的素材，没有写入`)
-    addTarget(out, targetOf(match.path))
+    if (match) addTarget(out, targetOf(match.path))
+    else if (skipped) skipped.push(text)
+    else throw new HttpError(400, 'material_missing', `没有标题是「${text}」的素材，没有写入`)
   }
   return out
 }

@@ -11,6 +11,9 @@
 //   POST /api/beer/recordings/sync         取回 status=ready 的结果写入内容库，再向家里确认入库
 //   GET  /api/beer/machines                家里 /health 的三台机器在线状态
 //
+// 视频链接（#34）由素材导入调 submitVideo 交给家里 POST /videos，之后和录音同一套接口；
+// 家里视图里 kind 为 video。取回时写成类型「视频」的条目，来源是原链接。
+//
 // 家里连不上时一律 502 home_unreachable「家里暂时连不上」，不写本地队列；
 // 家里自己的错误（如 503 ORIGINALS_UNAVAILABLE、409 NOT_FAILED）按原状态码和错误码透传。
 //
@@ -160,11 +163,37 @@ export async function recordingSummary(ctx) {
     .map(rec => ({
       id: typeof rec.id === 'string' ? rec.id : String(rec.id ?? ''),
       filename: typeof rec.filename === 'string' ? rec.filename : '',
+      title: displayName(rec),
+      kind: isVideo(rec) ? 'video' : 'recording',
       progress: progressOf(rec.progress),
       step: currentStepOf(rec.steps),
     }))
   const failedCount = recordings.filter(rec => rec?.status === 'failed').length
   return { online: true, processing, failedCount }
+}
+
+/** 列表里显示的名字：家里给的 title（视频标题 / 录音文件名），老版本家里没有 title 就用文件名。 */
+function displayName(rec) {
+  if (typeof rec?.title === 'string' && rec.title.trim()) return rec.title.trim()
+  return typeof rec?.filename === 'string' ? rec.filename : ''
+}
+
+function isVideo(rec) {
+  return rec?.kind === 'video'
+}
+
+/** 把 B 站 / YouTube 链接交给家里转写，返回家里的录音视图。错误按家里的状态码和错误码透传。 */
+export async function submitVideo(ctx, url) {
+  const res = await homeFetch(ctx, 'POST', '/videos', {
+    body: JSON.stringify({ url }),
+    headers: { 'content-type': 'application/json' },
+  })
+  const body = await readHomeBody(res)
+  if (!res.ok) throw homeError(res.status, body)
+  if (!body || typeof body !== 'object' || typeof body.id !== 'string' || !body.id) {
+    throw new HttpError(502, 'home_bad_response', '家里返回的内容看不懂：没有任务编号，提交可能没成功，请再试一次')
+  }
+  return body
 }
 
 function progressOf(value) {
@@ -263,8 +292,9 @@ async function runSync(ctx, syncState, now) {
     }
 
     const date = localDate(now)
-    const entry = await createEntry(ctx, MATERIALS_FOLDER, `${date}-${safeEntryName(fileStem(rec.filename), '录音')}`, {
-      'index.md': indexNote(rec, transcript, date),
+    const name = isVideo(rec) ? safeEntryName(videoTitle(rec, transcript), '视频') : safeEntryName(fileStem(rec.filename), '录音')
+    const entry = await createEntry(ctx, MATERIALS_FOLDER, `${date}-${name}`, {
+      'index.md': isVideo(rec) ? videoIndexNote(rec, transcript, date) : indexNote(rec, transcript, date),
       'transcript.md': transcriptText(transcript?.markdown),
       'transcript.srt': transcriptText(transcript?.srt),
     })
@@ -332,18 +362,21 @@ function withNewSummary(content, view) {
   let end = lines.indexOf('---', 1)
   if (end < 0) return raw
 
+  // 视频条目的素材类型固定是「视频」，摘要类型记在 `摘要类型:`；录音条目的 `类型:` 就是摘要类型。
+  const key = isVideo(view) ? '摘要类型' : '类型'
   const type = oneLine(view?.summary_type) || oneLine(view?.type)
   if (type) {
     let found = false
+    const pattern = new RegExp(`^${key}\\s*:`)
     for (let i = 1; i < end; i++) {
-      if (/^类型\s*:/.test(lines[i])) {
-        lines[i] = `类型: ${type}`
+      if (pattern.test(lines[i])) {
+        lines[i] = `${key}: ${type}`
         found = true
         break
       }
     }
     if (!found) {
-      lines.splice(end, 0, `类型: ${type}`)
+      lines.splice(end, 0, `${key}: ${type}`)
       end += 1
     }
   }
@@ -376,6 +409,54 @@ function indexNote(rec, transcript, date) {
     summary,
     '',
   ].join('\n')
+}
+
+const TEXT_SOURCES = { platform_manual: '平台字幕', platform_auto: '平台自动字幕', asr: '语音识别' }
+
+function videoTitle(rec, transcript) {
+  return oneLine(transcript?.title) || oneLine(transcript?.source?.title) || oneLine(rec?.title) || '视频'
+}
+
+/**
+ * 视频条目（#34）：类型固定「视频」，来源是原链接；摘要类型单独一行，重新总结只改它。
+ * 和录音一样带 `录音编号:`，取回去重、重新总结同步都靠它。
+ */
+function videoIndexNote(rec, transcript, date) {
+  const source = transcript?.source && typeof transcript.source === 'object' ? transcript.source : {}
+  const url = oneLine(transcript?.source_url) || oneLine(rec?.source_url) || oneLine(source.url) || '未知'
+  const textSource = oneLine(source.text_source ?? rec?.text_source)
+  const duration = formatDuration(source.duration_ms ?? rec?.duration_ms)
+  const summary = typeof transcript?.summary === 'string' && transcript.summary.trim()
+    ? transcript.summary.trim()
+    : '摘要待生成'
+  const author = oneLine(source.author ?? rec?.author)
+  return [
+    '---',
+    `标题: ${videoTitle(rec, transcript)}`,
+    '类型: 视频',
+    `摘要类型: ${oneLine(transcript?.summary_type) || oneLine(rec?.summary_type) || '视频'}`,
+    '状态: 待整理',
+    `来源: ${url}`,
+    ...(author ? [`作者: ${author}`] : []),
+    ...(duration ? [`时长: ${duration}`] : []),
+    ...(textSource ? [`文字来源: ${TEXT_SOURCES[textSource] ?? textSource}`] : []),
+    `录音编号: ${oneLine(rec?.id)}`,
+    `日期: ${date}`,
+    '---',
+    '',
+    summary,
+    '',
+  ].join('\n')
+}
+
+/** 毫秒 → `M:SS` 或 `H:MM:SS`；没有或不合法时返回空串。 */
+function formatDuration(ms) {
+  const total = Math.round(Number(ms) / 1000)
+  if (!Number.isFinite(total) || total <= 0) return ''
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const sec = String(total % 60).padStart(2, '0')
+  return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`
 }
 
 function fileStem(filename) {
@@ -550,13 +631,13 @@ function submittedView(view, requestedName) {
 /** 状态工具值：五步进度、整体状态和失败原因。 */
 function statusView(view, fallbackId) {
   const id = typeof view?.id === 'string' && view.id ? view.id : fallbackId
-  const filename = typeof view?.filename === 'string' ? view.filename : ''
+  const filename = displayName(view)
   const status = typeof view?.status === 'string' ? view.status : ''
   const progress = typeof view?.progress === 'number' ? view.progress : 0
   const error = typeof view?.error === 'string' && view.error ? view.error : null
   const errorCode = typeof view?.error_code === 'string' && view.error_code ? view.error_code : null
   const lines = [
-    `录音 ${id}${filename ? `（${filename}）` : ''}`,
+    `${isVideo(view) ? '视频' : '录音'} ${id}${filename ? `（${filename}）` : ''}`,
     `家里状态：${recordingStatusName(status)}，进度 ${progress}%`,
     ...stepLines(view?.steps),
   ]
@@ -569,11 +650,11 @@ function statusView(view, fallbackId) {
 /** 结果工具值：文字稿 markdown 全文和摘要；没有摘要时明确说明。 */
 function transcriptView(transcript, fallbackId) {
   const id = typeof transcript?.id === 'string' && transcript.id ? transcript.id : fallbackId
-  const filename = typeof transcript?.filename === 'string' ? transcript.filename : ''
+  const filename = displayName(transcript)
   const markdown = typeof transcript?.markdown === 'string' ? transcript.markdown : ''
   const summary = typeof transcript?.summary === 'string' && transcript.summary.trim() ? transcript.summary.trim() : null
   const text = [
-    `录音 ${id}${filename ? `（${filename}）` : ''}的转录结果：`,
+    `${isVideo(transcript) ? '视频' : '录音'} ${id}${filename ? `（${filename}）` : ''}的转录结果：`,
     `摘要：${summary ?? '暂无摘要（家里还没有生成摘要）'}`,
     '',
     markdown || '（家里没有返回文字稿）',

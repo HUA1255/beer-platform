@@ -1,0 +1,26 @@
+name = "beer-reminder"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# 自己域名的子域名（workers.dev 在国内不稳定）
+routes = [{ pattern = "remind.example.com", custom_domain = true }]
+workers_dev = false
+
+# 每分钟检查一次到点的提醒。新部署的触发器大约 3 分钟后才开始跑（2026-11-12 实测）。
+[triggers]
+crons = ["* * * * *"]
+
+# Cloudflare 自带发信。Workers Free 只能发给账号里验证过的地址，正好只发给自己。
+[[send_email]]
+name = "EMAIL"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "beer-reminder"
+database_id = "<your-d1-database-id>"
+migrations_dir = "migrations"
+
+# 地址和密钥都用 wrangler secret put 设，不写进仓库：
+#   REMINDER_TOKEN  调用接口的访问密钥（Beer 钥匙串里的 reminder-api-key）
+#   MAIL_FROM       发件人，必须在 Email Routing 域名下，例如 remind@example.com
+#   MAIL_TO         收件人，必须是 Email Routing 里验证过的地址
